@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FaceVerify — Educational Facial Recognition</title>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+
+:root {
+  --bg: #07080d;
+  --bg2: #0b0d15;
+  --surface: #0f1120;
+  --surface2: #131628;
+  --border: #1c2035;
+  --border2: #252a45;
+  --accent: #4f8eff;
+  --accent-dim: rgba(79,142,255,0.12);
+  --green: #2ecc8a;
+  --green-dim: rgba(46,204,138,0.12);
+  --yellow: #f5c842;
+  --yellow-dim: rgba(245,200,66,0.12);
+  --red: #e8445a;
+  --red-dim: rgba(232,68,90,0.12);
+  --orange: #ff7c3a;
+  --purple: #a78bfa;
+  --text: #9aa5c0;
+  --text2: #c8d4f0;
+  --text3: #e8eeff;
+  --dim: #3a4560;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-weight: 300;
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ── Layout ─────────────────────────────── */
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border2);
+  padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 200;
+}
+
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-mark {
+  width: 30px; height: 30px; background: var(--accent-dim);
+  border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 500;
+}
+.logo-name { font-family: var(--mono); font-size: 15px; color: var(--text3); letter-spacing: 0.05em; }
+.logo-tag  { font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: 0.15em; text-transform: uppercase; }
+
+.header-badge {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; padding: 4px 10px;
+  border: 1px solid var(--border2); color: var(--dim);
+  background: var(--yellow-dim); border-color: var(--yellow); color: var(--yellow);
+}
+
+/* ── Steps nav ─────────────────────────── */
+.steps-nav {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  display: flex; padding: 0 24px;
+}
+
+.step-tab {
+  padding: 10px 20px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--dim); border-bottom: 2px solid transparent;
+  cursor: default; display: flex; align-items: center; gap: 8px; transition: all 0.2s;
+  position: relative;
+}
+.step-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.step-tab.done   { color: var(--green); border-bottom-color: var(--green); cursor: pointer; }
+.step-tab.done:hover { color: var(--green); opacity: 0.8; }
+
+.step-num {
+  width: 18px; height: 18px; border-radius: 50%; border: 1px solid currentColor;
+  display: flex; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0;
+}
+
+/* ── Main content ──────────────────────── */
+.content { flex: 1; padding: 24px; max-width: 1100px; margin: 0 auto; width: 100%; }
+
+/* ── Panels ────────────────────────────── */
+.panel {
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 20px; margin-bottom: 16px;
+}
+.panel-title {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+}
+.panel-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── Upload zones ─────────────────────── */
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 700px) { .upload-grid { grid-template-columns: 1fr; } }
+
+.upload-slot {
+  border: 1px dashed var(--border2); aspect-ratio: 4/3;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; overflow: hidden; transition: all 0.2s;
+  background: var(--bg2);
+}
+.upload-slot:hover { border-color: var(--accent); background: var(--accent-dim); }
+.upload-slot.drag-over { border-color: var(--accent); background: var(--accent-dim); }
+.upload-slot.has-image { border-style: solid; border-color: var(--border2); }
+
+.upload-slot input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-slot .slot-icon { font-size: 32px; opacity: 0.25; margin-bottom: 10px; }
+.upload-slot .slot-hint { font-family: var(--mono); font-size: 11px; color: var(--dim); letter-spacing: 0.08em; text-align: center; }
+
+.slot-preview {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none;
+}
+.slot-preview.visible { display: block; }
+
+.slot-overlay {
+  position: absolute; inset: 0; background: rgba(7,8,13,0.7);
+  display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;
+}
+.upload-slot.has-image:hover .slot-overlay { opacity: 1; }
+.slot-overlay span { font-family: var(--mono); font-size: 11px; color: var(--text2); letter-spacing: 0.1em; }
+
+.slot-badge {
+  position: absolute; top: 10px; left: 10px; font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.12em; padding: 3px 8px; z-index: 5;
+}
+.slot-badge.a { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); }
+.slot-badge.b { background: var(--green-dim); border: 1px solid var(--green); color: var(--green); }
+
+.slot-status {
+  position: absolute; bottom: 10px; right: 10px; font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.1em; padding: 3px 8px; border: 1px solid; z-index: 5; display: none;
+}
+.slot-status.ok    { border-color: var(--green); color: var(--green); background: var(--green-dim); display: block; }
+.slot-status.error { border-color: var(--red);   color: var(--red);   background: var(--red-dim);   display: block; }
+.slot-status.processing { border-color: var(--yellow); color: var(--yellow); background: var(--yellow-dim); display: block; }
+
+/* ── Source toggle for slot B ─────────── */
+.source-toggle { display: flex; gap: 0; margin-bottom: 12px; }
+.src-btn {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; padding: 6px 16px;
+  border: 1px solid var(--border2); background: transparent; color: var(--dim); cursor: pointer;
+  transition: all 0.15s;
+}
+.src-btn:not(:first-child) { border-left: 0; }
+.src-btn.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+
+/* ── Live camera slot ─────────────────── */
+#liveSlot {
+  border: 1px solid var(--border2); aspect-ratio: 4/3; position: relative;
+  overflow: hidden; background: #000; display: none;
+}
+#liveSlot.visible { display: block; }
+#liveVideo { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+#captureBtn {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; padding: 8px 24px;
+  border: 1px solid var(--accent); background: var(--accent-dim); color: var(--accent);
+  cursor: pointer; transition: all 0.2s; z-index: 10;
+}
+#captureBtn:hover { background: rgba(79,142,255,0.25); }
+#liveBadge {
+  position: absolute; top: 10px; left: 10px; font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.1em; padding: 3px 8px; border: 1px solid var(--green); color: var(--green);
+  background: var(--green-dim); z-index: 10;
+  animation: blink 1.5s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* ── Buttons ───────────────────────────── */
+.btn {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 10px 24px; border: 1px solid var(--border2); background: transparent; color: var(--text);
+  cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn:hover { border-color: var(--text2); color: var(--text3); }
+.btn.primary { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.btn.primary:hover { background: rgba(79,142,255,0.22); }
+.btn.success { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+.btn.success:hover { background: rgba(46,204,138,0.22); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* ── Progress bar ─────────────────────── */
+.progress-wrap { background: var(--border); height: 3px; margin: 12px 0; overflow: hidden; }
+.progress-bar  { height: 100%; background: var(--accent); width: 0; transition: width 0.4s ease; }
+
+/* ── Analysis results ─────────────────── */
+.results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+
+.method-card {
+  background: var(--surface2); border: 1px solid var(--border); padding: 16px;
+  position: relative; overflow: hidden;
+}
+.method-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+}
+.method-card.high   { border-color: rgba(46,204,138,0.3); }
+.method-card.high::before   { background: var(--green); }
+.method-card.medium { border-color: rgba(245,200,66,0.3); }
+.method-card.medium::before { background: var(--yellow); }
+.method-card.low    { border-color: rgba(232,68,90,0.3); }
+.method-card.low::before    { background: var(--red); }
+
+.method-name {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text2);
+  margin-bottom: 4px; text-transform: uppercase;
+}
+.method-desc { font-size: 12px; color: var(--dim); margin-bottom: 12px; line-height: 1.5; }
+
+.score-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.score-bar-wrap { flex: 1; height: 6px; background: var(--border); overflow: hidden; }
+.score-bar { height: 100%; transition: width 0.8s ease; }
+.score-val {
+  font-family: var(--mono); font-size: 18px; font-weight: 500; min-width: 52px; text-align: right;
+}
+
+.method-detail { font-family: var(--mono); font-size: 10px; color: var(--dim); letter-spacing: 0.05em; line-height: 1.7; }
+.method-detail span { color: var(--text); }
+
+/* ── Verdict ───────────────────────────── */
+.verdict-box {
+  background: var(--surface2); border: 1px solid var(--border2); padding: 28px;
+  text-align: center; margin-bottom: 20px; position: relative; overflow: hidden;
+}
+.verdict-score {
+  font-family: var(--mono); font-size: 72px; font-weight: 500; line-height: 1;
+  margin-bottom: 8px; letter-spacing: -0.02em;
+}
+.verdict-label {
+  font-family: var(--mono); font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.verdict-explanation { font-size: 13px; color: var(--text); max-width: 500px; margin: 0 auto; line-height: 1.7; }
+
+.verdict-box.match    { border-color: rgba(46,204,138,0.4); }
+.verdict-box.match    .verdict-score { color: var(--green); }
+.verdict-box.match    .verdict-label { color: var(--green); }
+.verdict-box.likely   { border-color: rgba(79,142,255,0.4); }
+.verdict-box.likely   .verdict-score { color: var(--accent); }
+.verdict-box.likely   .verdict-label { color: var(--accent); }
+.verdict-box.unsure   { border-color: rgba(245,200,66,0.4); }
+.verdict-box.unsure   .verdict-score { color: var(--yellow); }
+.verdict-box.unsure   .verdict-label { color: var(--yellow); }
+.verdict-box.nomatch  { border-color: rgba(232,68,90,0.4); }
+.verdict-box.nomatch  .verdict-score { color: var(--red); }
+.verdict-box.nomatch  .verdict-label { color: var(--red); }
+
+.verdict-disclaimer {
+  background: var(--yellow-dim); border: 1px solid rgba(245,200,66,0.3);
+  padding: 12px 16px; font-size: 12px; color: var(--yellow); margin-top: 12px; line-height: 1.6;
+  font-family: var(--mono);
+}
+
+/* ── Face previews in results ─────────── */
+.face-previews { display: flex; gap: 12px; margin-bottom: 20px; align-items: flex-start; }
+.face-preview-box { flex: 1; }
+.face-preview-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
+.face-preview-canvas { width: 100%; border: 1px solid var(--border); display: block; }
+
+/* ── Landmark viz ──────────────────────── */
+.lm-viz { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lm-canvas-wrap { position: relative; }
+.lm-canvas-wrap canvas { width: 100%; display: block; border: 1px solid var(--border); }
+
+/* ── Metric table ─────────────────────── */
+.metric-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
+.metric-table th { text-align: left; padding: 6px 10px; color: var(--dim); letter-spacing: 0.1em; font-weight: 400; border-bottom: 1px solid var(--border); }
+.metric-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+.metric-table td.val { color: var(--text3); }
+.metric-table tr:last-child td { border-bottom: none; }
+
+/* ── Loading overlay ───────────────────── */
+#globalLoader {
+  position: fixed; inset: 0; background: rgba(7,8,13,0.92); z-index: 999;
+  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+}
+#globalLoader.visible { display: flex; }
+.loader-text { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 0.15em; }
+.loader-sub  { font-family: var(--mono); font-size: 10px; color: var(--dim); letter-spacing: 0.1em; }
+.spinner {
+  width: 40px; height: 40px; border: 2px solid var(--border2); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Toast ─────────────────────────────── */
+.toast {
+  position: fixed; bottom: 20px; right: 20px; background: var(--surface2);
+  border: 1px solid var(--accent); color: var(--accent); font-family: var(--mono); font-size: 11px;
+  padding: 10px 18px; letter-spacing: 0.08em; opacity: 0; transform: translateY(8px);
+  transition: all 0.2s; pointer-events: none; z-index: 500;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.error { border-color: var(--red); color: var(--red); }
+
+/* ── Info callouts ─────────────────────── */
+.info-box {
+  background: var(--accent-dim); border: 1px solid rgba(79,142,255,0.3);
+  padding: 12px 16px; font-size: 12px; line-height: 1.7; color: var(--text);
+  margin-bottom: 14px;
+}
+.info-box strong { color: var(--accent); font-weight: 600; }
+
+/* ── Divider ────────────────────────────── */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* ── Hidden ─────────────────────────────── */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Global loader -->
+<div id="globalLoader">
+  <div class="spinner"></div>
+  <div class="loader-text" id="loaderText">INITIALIZING...</div>
+  <div class="loader-sub" id="loaderSub">Loading MediaPipe Face Mesh model</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">FV</div>
+    <div>
+      <div class="logo-name">FaceVerify</div>
+      <div class="logo-tag">Educational Facial Recognition System</div>
+    </div>
+  </div>
+  <div class="header-badge">⚠ EDUCATIONAL USE ONLY</div>
+</header>
+
+<!-- Steps nav -->
+<div class="steps-nav">
+  <div class="step-tab active" id="tab1" onclick="goToStep(1)">
+    <div class="step-num">1</div> Reference Photo
+  </div>
+  <div class="step-tab" id="tab2" onclick="goToStep(2)">
+    <div class="step-num">2</div> Comparison Subject
+  </div>
+  <div class="step-tab" id="tab3" onclick="goToStep(3)">
+    <div class="step-num">3</div> Analysis
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ STEP 1 ═══ -->
+<div class="content" id="step1">
+  <div class="info-box">
+    <strong>How this works:</strong> Upload a clear, front-facing photo of the reference person. The system will detect 468 facial landmarks using MediaPipe Face Mesh, then extract features using 7 classical (non-AI) methods: Procrustes geometry, facial ratio analysis, LBP texture histograms, HOG descriptors, DCT perceptual hashing, SSIM structural similarity, and color histograms.
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Reference Photo — Person A</div>
+    <div class="upload-grid" style="grid-template-columns: 1fr;">
+      <div class="upload-slot" id="slotA">
+        <input type="file" id="fileA" accept="image/*">
+        <div class="slot-badge a">REF A</div>
+        <div class="slot-status" id="statusA"></div>
+        <canvas class="slot-preview" id="previewA"></canvas>
+        <div class="slot-icon">⊕</div>
+        <div class="slot-hint">CLICK OR DROP PHOTO HERE<br><span style="font-size:10px;color:var(--dim)">Front-facing, well-lit photos work best</span></div>
+        <div class="slot-overlay"><span>CLICK TO CHANGE</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn primary" id="nextTo2" disabled onclick="goToStep(2)">NEXT: ADD COMPARISON →</button>
+    <span id="step1hint" style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:0.1em">Upload a reference photo to continue</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ STEP 2 ═══ -->
+<div class="content hidden" id="step2">
+  <div class="info-box">
+    <strong>Comparison subject:</strong> Upload a second photo of the person you want to compare — or use your live camera to capture a face in real time. The system will process both using the same pipeline for a fair comparison.
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Comparison Subject — Person B</div>
+    <div class="source-toggle">
+      <button class="src-btn active" id="srcPhoto" onclick="setCompareSource('photo')">📷 UPLOAD PHOTO</button>
+      <button class="src-btn" id="srcCamera" onclick="setCompareSource('camera')">🎥 LIVE CAMERA</button>
+    </div>
+
+    <!-- Photo upload -->
+    <div id="photoUploadWrap">
+      <div class="upload-slot" id="slotB">
+        <input type="file" id="fileB" accept="image/*">
+        <div class="slot-badge b">CMP B</div>
+        <div class="slot-status" id="statusB"></div>
+        <canvas class="slot-preview" id="previewB"></canvas>
+        <div class="slot-icon">⊕</div>
+        <div class="slot-hint">CLICK OR DROP PHOTO HERE</div>
+        <div class="slot-overlay"><span>CLICK TO CHANGE</span></div>
+      </div>
+    </div>
+
+    <!-- Live camera -->
+    <div id="liveSlot">
+      <video id="liveVideo" playsinline autoplay muted></video>
+      <div id="liveBadge">● LIVE</div>
+      <button id="captureBtn" onclick="captureLiveFrame()">📸 CAPTURE FRAME</button>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" onclick="goToStep(1)">← BACK</button>
+    <button class="btn primary" id="analyzeBtn" disabled onclick="runAnalysis()">RUN ANALYSIS →</button>
+    <span id="step2hint" style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:0.1em">Add a comparison subject to continue</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ STEP 3 ═══ -->
+<div class="content hidden" id="step3">
+  <div id="resultsContainer"></div>
+  <div class="btn-row" style="margin-top:20px;">
+    <button class="btn" onclick="goToStep(1)">← START OVER</button>
+    <button class="btn" onclick="goToStep(2)">← CHANGE COMPARISON</button>
+  </div>
+</div>
+
+</div><!-- .app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+const state = {
+  faceMesh: null,
+  modelReady: false,
+  imageA: null, landmarksA: null, cropA: null,
+  imageB: null, landmarksB: null, cropB: null,
+  stream: null,
+  compareSource: 'photo',
+};
+
+// ═══════════════════════════════════════════════════════════════
+// MEDIAPIPE INIT
+// ═══════════════════════════════════════════════════════════════
+async function initModel() {
+  showLoader('LOADING MODEL...', 'Downloading MediaPipe Face Mesh weights (~8MB)');
+  state.faceMesh = new FaceMesh({
+    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${f}`
+  });
+  state.faceMesh.setOptions({
+    maxNumFaces: 1,
+    refineLandmarks: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5,
+  });
+  state.faceMesh.onResults(() => {}); // dummy to init
+  await state.faceMesh.initialize();
+  state.modelReady = true;
+  hideLoader();
+}
+
+async function detectFace(imgElement) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Detection timeout')), 15000);
+    state.faceMesh.onResults(results => {
+      clearTimeout(timeout);
+      const faces = results.multiFaceLandmarks || [];
+      if (faces.length === 0) resolve(null);
+      else resolve(faces[0]);
+    });
+    state.faceMesh.send({ image: imgElement }).catch(reject);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STEP NAV
+// ═══════════════════════════════════════════════════════════════
+let maxStep = 1;
+
+function goToStep(n) {
+  if (n > maxStep) return;
+  [1,2,3].forEach(i => {
+    document.getElementById(`step${i}`).classList.toggle('hidden', i !== n);
+    const tab = document.getElementById(`tab${i}`);
+    tab.classList.remove('active','done');
+    if (i === n) tab.classList.add('active');
+    else if (i < n || i <= maxStep) tab.classList.add('done');
+  });
+}
+
+function advanceStep(n) {
+  maxStep = Math.max(maxStep, n);
+  goToStep(n);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FILE HANDLING
+// ═══════════════════════════════════════════════════════════════
+function setupSlot(inputId, slotId, previewId, statusId, onSuccess) {
+  const input  = document.getElementById(inputId);
+  const slot   = document.getElementById(slotId);
+  const preview= document.getElementById(previewId);
+  const status = document.getElementById(statusId);
+
+  const handler = async (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setStatus(statusId, 'processing', 'PROCESSING...');
+    const img = await loadImageFromFile(file);
+    // Draw preview
+    preview.width = img.naturalWidth; preview.height = img.naturalHeight;
+    preview.getContext('2d').drawImage(img, 0, 0);
+    preview.classList.add('visible');
+    slot.classList.add('has-image');
+    slot.querySelector('.slot-icon').style.display = 'none';
+    slot.querySelector('.slot-hint').style.display = 'none';
+    await onSuccess(img, status);
+  };
+
+  input.addEventListener('change', e => { if(e.target.files[0]) handler(e.target.files[0]); });
+  slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drag-over'); });
+  slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+  slot.addEventListener('drop', e => {
+    e.preventDefault(); slot.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) handler(f);
+  });
+}
+
+async function loadImageFromFile(file) {
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = e => { const img = new Image(); img.onload = () => res(img); img.src = e.target.result; };
+    r.readAsDataURL(file);
+  });
+}
+
+function setStatus(id, type, text) {
+  const el = document.getElementById(id);
+  el.className = 'slot-status ' + type;
+  el.textContent = text;
+}
+
+// Setup Slot A
+setupSlot('fileA', 'slotA', 'previewA', 'statusA', async (img, status) => {
+  if (!state.modelReady) await initModel();
+  showLoader('DETECTING FACE A...', 'Running landmark detection');
+  try {
+    const lm = await detectFace(img);
+    hideLoader();
+    if (!lm) { setStatus('statusA','error','NO FACE FOUND'); toast('No face detected in image A','error'); return; }
+    state.imageA = img; state.landmarksA = lm;
+    state.cropA = extractFaceCrop(img, lm);
+    setStatus('statusA','ok',`✓ ${lm.length} LANDMARKS`);
+    document.getElementById('nextTo2').disabled = false;
+    document.getElementById('step1hint').textContent = `Face detected — ${lm.length} landmarks mapped`;
+    toast('Reference face detected!');
+    maxStep = Math.max(maxStep, 2);
+    document.getElementById('tab2').classList.add('done');
+  } catch(e) { hideLoader(); setStatus('statusA','error','ERROR'); toast('Detection failed','error'); }
+});
+
+// Setup Slot B
+setupSlot('fileB', 'slotB', 'previewB', 'statusB', async (img, status) => {
+  if (!state.modelReady) await initModel();
+  showLoader('DETECTING FACE B...', 'Running landmark detection');
+  try {
+    const lm = await detectFace(img);
+    hideLoader();
+    if (!lm) { setStatus('statusB','error','NO FACE FOUND'); toast('No face detected in image B','error'); return; }
+    state.imageB = img; state.landmarksB = lm;
+    state.cropB = extractFaceCrop(img, lm);
+    setStatus('statusB','ok',`✓ ${lm.length} LANDMARKS`);
+    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('step2hint').textContent = 'Ready — click Run Analysis';
+    toast('Comparison face detected!');
+  } catch(e) { hideLoader(); setStatus('statusB','error','ERROR'); toast('Detection failed','error'); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CAMERA
+// ═══════════════════════════════════════════════════════════════
+function setCompareSource(src) {
+  state.compareSource = src;
+  document.getElementById('srcPhoto').classList.toggle('active', src === 'photo');
+  document.getElementById('srcCamera').classList.toggle('active', src === 'camera');
+  document.getElementById('photoUploadWrap').style.display = src === 'photo' ? 'block' : 'none';
+  document.getElementById('liveSlot').classList.toggle('visible', src === 'camera');
+  if (src === 'camera') startCamera();
+  else stopCamera();
+}
+
+async function startCamera() {
+  try {
+    state.stream = await navigator.mediaDevices.getUserMedia({ video: { width:1280, height:720 }, audio:false });
+    document.getElementById('liveVideo').srcObject = state.stream;
+  } catch(e) { toast('Camera access denied','error'); setCompareSource('photo'); }
+}
+
+function stopCamera() {
+  if (state.stream) { state.stream.getTracks().forEach(t => t.stop()); state.stream = null; }
+}
+
+async function captureLiveFrame() {
+  const video = document.getElementById('liveVideo');
+  const c = document.createElement('canvas');
+  c.width = video.videoWidth; c.height = video.videoHeight;
+  const cx = c.getContext('2d');
+  cx.translate(c.width, 0); cx.scale(-1, 1);
+  cx.drawImage(video, 0, 0);
+  const img = new Image(); img.src = c.toDataURL('image/jpeg', 0.92);
+  await new Promise(r => img.onload = r);
+  showLoader('DETECTING FACE B...', 'Running landmark detection');
+  try {
+    const lm = await detectFace(img);
+    hideLoader();
+    if (!lm) { toast('No face in frame — try again','error'); return; }
+    state.imageB = img; state.landmarksB = lm;
+    state.cropB = extractFaceCrop(img, lm);
+    stopCamera();
+    // Show captured frame in preview
+    document.getElementById('liveSlot').classList.remove('visible');
+    const slotB = document.getElementById('slotB');
+    const prevB = document.getElementById('previewB');
+    prevB.width = img.naturalWidth; prevB.height = img.naturalHeight;
+    prevB.getContext('2d').drawImage(img, 0, 0);
+    prevB.classList.add('visible');
+    slotB.classList.add('has-image');
+    document.getElementById('photoUploadWrap').style.display = 'block';
+    document.getElementById('srcPhoto').classList.add('active');
+    document.getElementById('srcCamera').classList.remove('active');
+    setStatus('statusB','ok',`✓ ${lm.length} LANDMARKS`);
+    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('step2hint').textContent = 'Frame captured — click Run Analysis';
+    toast('Face captured from camera!');
+  } catch(e) { hideLoader(); toast('Detection failed','error'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FACE CROP EXTRACTION
+// ═══════════════════════════════════════════════════════════════
+function extractFaceCrop(img, lm, padding = 0.25) {
+  const W = img.naturalWidth, H = img.naturalHeight;
+  const xs = lm.map(p => p.x * W), ys = lm.map(p => p.y * H);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const pw = (x1 - x0) * padding, ph = (y1 - y0) * padding;
+  const cx = Math.max(0, x0 - pw), cy = Math.max(0, y0 - ph);
+  const cw = Math.min(W - cx, x1 - x0 + 2*pw), ch = Math.min(H - cy, y1 - y0 + 2*ph);
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 128;
+  c.getContext('2d').drawImage(img, cx, cy, cw, ch, 0, 0, 128, 128);
+  return c;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ANALYSIS ENGINE — 7 METHODS
+// ═══════════════════════════════════════════════════════════════
+
+// ── Utility: get grayscale pixels from canvas ──────────────────
+function getGrayscale(canvas, w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d').drawImage(canvas, 0, 0, w, h);
+  const d = c.getContext('2d').getImageData(0,0,w,h).data;
+  const g = new Float32Array(w*h);
+  for (let i=0;i<w*h;i++) g[i] = (0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2]) / 255;
+  return g;
+}
+
+// ── METHOD 1: Procrustes Shape Analysis ───────────────────────
+function procrustesAnalysis(lmA, lmB) {
+  const pts = n => lmA.slice(0,n).map((p,i) => [p.x, p.y]);
+  // Sample 100 evenly-spaced landmarks
+  const sample = (lm, n=100) => {
+    const step = Math.floor(lm.length / n);
+    return Array.from({length:n}, (_,i) => [lm[i*step].x, lm[i*step].y]);
+  };
+  const ptsA = sample(lmA), ptsB = sample(lmB);
+
+  const centroid = pts => {
+    const cx = pts.reduce((s,p)=>s+p[0],0)/pts.length;
+    const cy = pts.reduce((s,p)=>s+p[1],0)/pts.length;
+    return [cx,cy];
+  };
+  const center = (pts, c) => pts.map(p=>[p[0]-c[0], p[1]-c[1]]);
+  const scale  = pts => { const s = Math.sqrt(pts.reduce((a,p)=>a+p[0]**2+p[1]**2,0)/pts.length); return pts.map(p=>[p[0]/s,p[1]/s]); };
+
+  const cA = center(ptsA, centroid(ptsA)), cB = center(ptsB, centroid(ptsB));
+  const sA = scale(cA), sB = scale(cB);
+
+  // Compute RMS distance
+  const rms = Math.sqrt(sA.reduce((sum,p,i) => sum + (p[0]-sB[i][0])**2 + (p[1]-sB[i][1])**2, 0) / sA.length);
+  // Convert to similarity (0-1), empirically tuned
+  const sim = Math.max(0, 1 - rms * 8);
+  return { score: sim, rms: rms.toFixed(4), points: sA.length };
+}
+
+// ── METHOD 2: Facial Ratio Analysis ───────────────────────────
+// Key landmark indices for geometry measurements
+const LM = {
+  leftEye:   33, rightEye:  263, noseTip:  1, noseBase: 94,
+  leftMouth: 61, rightMouth:291, chin:     152, forehead: 10,
+  leftCheek: 234, rightCheek:454, leftBrow: 70, rightBrow:300,
+  leftEyeOuter:33, rightEyeOuter:263, leftEyeInner:133, rightEyeInner:362,
+  upperLip:  0, lowerLip:  17, leftJaw:   172, rightJaw:  397,
+  noseLeft:  129, noseRight: 358,
+};
+
+function faceRatioAnalysis(lmA, lmB, W=1, H=1) {
+  const pt = (lm, k) => ({ x: lm[LM[k]].x, y: lm[LM[k]].y });
+  const dist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
+
+  const ratios = (lm) => {
+    const eyeW   = dist(pt(lm,'leftEye'), pt(lm,'rightEye'));
+    const faceH  = dist(pt(lm,'forehead'), pt(lm,'chin'));
+    const faceW  = dist(pt(lm,'leftCheek'), pt(lm,'rightCheek'));
+    const noseW  = dist(pt(lm,'noseLeft'), pt(lm,'noseRight'));
+    const mouthW = dist(pt(lm,'leftMouth'), pt(lm,'rightMouth'));
+    const noseH  = dist(pt(lm,'noseTip'), pt(lm,'noseBase'));
+    const eyeToNose  = dist(pt(lm,'noseTip'), { x: (pt(lm,'leftEye').x+pt(lm,'rightEye').x)/2, y: (pt(lm,'leftEye').y+pt(lm,'rightEye').y)/2 });
+    const noseToMouth= dist(pt(lm,'noseTip'), { x:(pt(lm,'leftMouth').x+pt(lm,'rightMouth').x)/2, y:(pt(lm,'leftMouth').y+pt(lm,'rightMouth').y)/2 });
+    const mouthToChin= dist({ x:(pt(lm,'leftMouth').x+pt(lm,'rightMouth').x)/2, y:(pt(lm,'leftMouth').y+pt(lm,'rightMouth').y)/2 }, pt(lm,'chin'));
+    const jawW   = dist(pt(lm,'leftJaw'), pt(lm,'rightJaw'));
+    return [
+      eyeW/faceW, faceH/faceW, noseW/eyeW, mouthW/eyeW,
+      noseH/faceH, eyeToNose/faceH, noseToMouth/faceH, mouthToChin/faceH,
+      jawW/faceW, noseW/mouthW,
+    ];
+  };
+
+  const rA = ratios(lmA), rB = ratios(lmB);
+  const diffs = rA.map((v,i) => Math.abs(v - rB[i]));
+  const meanDiff = diffs.reduce((a,b)=>a+b,0)/diffs.length;
+  const sim = Math.max(0, 1 - meanDiff * 6);
+  return {
+    score: sim, ratiosA: rA.map(v=>v.toFixed(3)), ratiosB: rB.map(v=>v.toFixed(3)),
+    diffs: diffs.map(v=>v.toFixed(3)), meanDiff: meanDiff.toFixed(4)
+  };
+}
+
+// ── METHOD 3: LBP Histogram ────────────────────────────────────
+function lbpHistogram(canvas) {
+  const W=64, H=64;
+  const gray = getGrayscale(canvas, W, H);
+  const hist = new Float32Array(256).fill(0);
+  for (let y=1;y<H-1;y++) {
+    for (let x=1;x<W-1;x++) {
+      const c = gray[y*W+x];
+      let code = 0;
+      const neighbors = [
+        [-1,-1],[-1,0],[-1,1],[0,1],[1,1],[1,0],[1,-1],[0,-1]
+      ];
+      neighbors.forEach(([dy,dx],i) => {
+        if (gray[(y+dy)*W+(x+dx)] >= c) code |= (1<<i);
+      });
+      hist[code]++;
+    }
+  }
+  // Normalize
+  const sum = hist.reduce((a,b)=>a+b,0);
+  return hist.map(v=>v/sum);
+}
+
+function lbpCompare(canvasA, canvasB) {
+  const hA = lbpHistogram(canvasA), hB = lbpHistogram(canvasB);
+  // Chi-squared distance
+  let chi = 0;
+  for (let i=0;i<256;i++) {
+    const s = hA[i]+hB[i];
+    if (s > 0) chi += (hA[i]-hB[i])**2 / s;
+  }
+  const sim = Math.max(0, 1 - chi * 3);
+  return { score: sim, chiSq: chi.toFixed(4), bins: 256 };
+}
+
+// ── METHOD 4: HOG Descriptor ──────────────────────────────────
+function hogDescriptor(canvas) {
+  const W=64, H=64, cellSize=8, nbins=9;
+  const gray = getGrayscale(canvas, W, H);
+  const cells = (H/cellSize) * (W/cellSize);
+  const hog = [];
+  for (let cy=0;cy<H/cellSize;cy++) {
+    for (let cx=0;cx<W/cellSize;cx++) {
+      const hist = new Float32Array(nbins).fill(0);
+      for (let y=cy*cellSize;y<(cy+1)*cellSize;y++) {
+        for (let x=cx*cellSize;x<(cx+1)*cellSize;x++) {
+          const gx = x>0&&x<W-1 ? gray[y*W+x+1]-gray[y*W+x-1] : 0;
+          const gy = y>0&&y<H-1 ? gray[(y+1)*W+x]-gray[(y-1)*W+x] : 0;
+          const mag = Math.hypot(gx,gy);
+          const ang = ((Math.atan2(gy,gx)*180/Math.PI)+180)%180;
+          const bin = Math.floor(ang/(180/nbins)) % nbins;
+          hist[bin] += mag;
+        }
+      }
+      // L2 norm
+      const norm = Math.sqrt(hist.reduce((a,b)=>a+b*b,0)) + 1e-6;
+      hist.forEach((v,i)=>hog.push(v/norm));
+    }
+  }
+  return hog;
+}
+
+function hogCompare(canvasA, canvasB) {
+  const hA = hogDescriptor(canvasA), hB = hogDescriptor(canvasB);
+  // Cosine similarity
+  let dot=0, nA=0, nB=0;
+  for(let i=0;i<hA.length;i++){dot+=hA[i]*hB[i];nA+=hA[i]**2;nB+=hB[i]**2;}
+  const cos = dot/(Math.sqrt(nA)*Math.sqrt(nB)+1e-8);
+  return { score: Math.max(0, cos), cosine: cos.toFixed(4), dims: hA.length };
+}
+
+// ── METHOD 5: pHash (DCT) ─────────────────────────────────────
+function pHash(canvas) {
+  const N=32;
+  const gray = getGrayscale(canvas, N, N);
+  // 2D DCT (simplified row/col separable)
+  const dct = new Float32Array(N*N);
+  for(let u=0;u<N;u++){
+    for(let v=0;v<N;v++){
+      let sum=0;
+      const cu = u===0?1/Math.sqrt(2):1, cv = v===0?1/Math.sqrt(2):1;
+      for(let x=0;x<N;x++) for(let y=0;y<N;y++)
+        sum+=gray[x*N+y]*Math.cos((2*x+1)*u*Math.PI/(2*N))*Math.cos((2*y+1)*v*Math.PI/(2*N));
+      dct[u*N+v]=(2/N)*cu*cv*sum;
+    }
+  }
+  // Top-left 8x8 low freq
+  const vals=[];
+  for(let u=0;u<8;u++) for(let v=0;v<8;v++) if(u||v) vals.push(dct[u*N+v]);
+  vals.unshift(dct[0]);
+  const med=[...vals].sort((a,b)=>a-b)[Math.floor(vals.length/2)];
+  return vals.map(v=>v>med?1:0);
+}
+
+function pHashCompare(canvasA, canvasB) {
+  const hA = pHash(canvasA), hB = pHash(canvasB);
+  const hamming = hA.reduce((s,b,i)=>s+(b!==hB[i]?1:0),0);
+  const sim = 1 - hamming/hA.length;
+  return { score: sim, hamming, bits: hA.length, similarity: (sim*100).toFixed(1) };
+}
+
+// ── METHOD 6: SSIM (Structural Similarity) ────────────────────
+function ssim(canvasA, canvasB) {
+  const W=32, H=32;
+  const gA = getGrayscale(canvasA,W,H), gB = getGrayscale(canvasB,W,H);
+  const n = W*H;
+  const muA = gA.reduce((a,b)=>a+b,0)/n, muB = gB.reduce((a,b)=>a+b,0)/n;
+  let sA=0,sB=0,sAB=0;
+  for(let i=0;i<n;i++){sA+=(gA[i]-muA)**2;sB+=(gB[i]-muB)**2;sAB+=(gA[i]-muA)*(gB[i]-muB);}
+  sA/=(n-1);sB/=(n-1);sAB/=(n-1);
+  const C1=0.01**2, C2=0.03**2;
+  const val=((2*muA*muB+C1)*(2*sAB+C2))/((muA**2+muB**2+C1)*(sA+sB+C2));
+  return { score: Math.max(0,(val+1)/2), raw: val.toFixed(4) }; // map [-1,1] to [0,1]
+}
+
+// ── METHOD 7: Color Histogram ─────────────────────────────────
+function colorHistogram(canvas) {
+  const W=64,H=64,bins=16;
+  const c=document.createElement('canvas');c.width=W;c.height=H;
+  c.getContext('2d').drawImage(canvas,0,0,W,H);
+  const d=c.getContext('2d').getImageData(0,0,W,H).data;
+  const hR=new Float32Array(bins), hG=new Float32Array(bins), hB=new Float32Array(bins);
+  for(let i=0;i<W*H;i++){
+    hR[Math.floor(d[i*4]/256*bins)]++;
+    hG[Math.floor(d[i*4+1]/256*bins)]++;
+    hB[Math.floor(d[i*4+2]/256*bins)]++;
+  }
+  const tot=W*H;
+  return [...hR.map(v=>v/tot),...hG.map(v=>v/tot),...hB.map(v=>v/tot)];
+}
+
+function colorCompare(canvasA, canvasB) {
+  const hA=colorHistogram(canvasA), hB=colorHistogram(canvasB);
+  // Bhattacharyya coefficient
+  let bc=0;
+  for(let i=0;i<hA.length;i++) bc+=Math.sqrt(hA[i]*hB[i]);
+  return { score: bc, bc: bc.toFixed(4), bins: hA.length/3+'×3 channels' };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN ANALYSIS RUNNER
+// ═══════════════════════════════════════════════════════════════
+async function runAnalysis() {
+  if (!state.landmarksA || !state.landmarksB) { toast('Both faces required','error'); return; }
+  advanceStep(3);
+
+  const container = document.getElementById('resultsContainer');
+  container.innerHTML = '<div style="font-family:var(--mono);font-size:12px;color:var(--dim);padding:20px 0;text-align:center;letter-spacing:0.1em">RUNNING ANALYSIS...</div>';
+
+  // Small delay so UI updates
+  await new Promise(r => setTimeout(r, 80));
+
+  // Run all 7 methods
+  const m1 = procrustesAnalysis(state.landmarksA, state.landmarksB);
+  const m2 = faceRatioAnalysis(state.landmarksA, state.landmarksB);
+  const m3 = lbpCompare(state.cropA, state.cropB);
+  const m4 = hogCompare(state.cropA, state.cropB);
+  const m5 = pHashCompare(state.cropA, state.cropB);
+  const m6 = ssim(state.cropA, state.cropB);
+  const m7 = colorCompare(state.cropA, state.cropB);
+
+  const methods = [
+    { name:'Procrustes Shape Analysis', abbr:'GEO', score:m1.score, weight:2.5, data:m1,
+      desc:'Normalizes both sets of 468 facial landmarks (centering + scale), then measures the mean positional difference. Captures overall facial geometry independently of image size or position.',
+      details: [
+        ['Points compared', m1.points],['RMS distance', m1.rms],['Weight','×2.5 (high confidence)']
+      ]
+    },
+    { name:'Facial Ratio Analysis', abbr:'RAT', score:m2.score, weight:2.0, data:m2,
+      desc:'Computes 10 biometric ratios (eye separation, face width/height, nose/mouth proportions, jaw geometry). Ratios are independent of image scale and lighting — a classic forensic anthropometry approach.',
+      details:[
+        ['Ratios measured','10'],['Mean diff',m2.meanDiff],['Weight','×2.0']
+      ]
+    },
+    { name:'LBP Texture Histogram', abbr:'LBP', score:m3.score, weight:1.5, data:m3,
+      desc:'Local Binary Patterns encode micro-texture by comparing each pixel to its 8 neighbors, building a 256-bin histogram of skin and facial texture patterns. Used extensively in pre-deep-learning face recognition.',
+      details:[
+        ['Histogram bins',m3.bins],['Chi² distance',m3.chiSq],['Weight','×1.5']
+      ]
+    },
+    { name:'HOG Descriptor', abbr:'HOG', score:m4.score, weight:1.5, data:m4,
+      desc:'Histograms of Oriented Gradients capture the direction and magnitude of edges across 8×8 pixel cells. Measures structural edge patterns — the shape of features like nose bridge, jawline, and brow ridge.',
+      details:[
+        ['Descriptor dims',m4.dims],['Cosine similarity',m4.cosine],['Weight','×1.5']
+      ]
+    },
+    { name:'DCT Perceptual Hash', abbr:'DCT', score:m5.score, weight:1.0, data:m5,
+      desc:'Applies a Discrete Cosine Transform to the face crop, extracts 64 low-frequency components, and encodes them as bits. Hamming distance measures how many frequency components agree. Robust to minor re-encoding and lighting shifts.',
+      details:[
+        ['Hash bits',m5.bits],['Hamming distance',m5.hamming],['Weight','×1.0']
+      ]
+    },
+    { name:'SSIM Structural Similarity', abbr:'SSIM', score:m6.score, weight:0.75, data:m6,
+      desc:'Compares luminance, contrast, and local structure of the aligned face crops. Originally designed for image quality assessment, it captures perceptual similarity better than raw pixel MSE.',
+      details:[
+        ['Raw SSIM',m6.raw],['Remapped (0–1)',(m6.score*100).toFixed(1)+'%'],['Weight','×0.75']
+      ]
+    },
+    { name:'Color Histogram Match', abbr:'CLR', score:m7.score, weight:0.5, data:m7,
+      desc:'Compares RGB color distributions of the face crops using Bhattacharyya coefficient. Useful as a soft signal — same person under similar lighting will share similar skin tone distributions.',
+      details:[
+        ['Channels', m7.bins],['Bhattacharyya',m7.bc],['Weight','×0.5 (supplemental)']
+      ]
+    },
+  ];
+
+  // Weighted average
+  const totalWeight = methods.reduce((s,m)=>s+m.weight,0);
+  const weightedScore = methods.reduce((s,m)=>s+m.score*m.weight,0) / totalWeight;
+
+  // Render
+  container.innerHTML = '';
+
+  // ── Verdict ──────────────────────────────────────────────────
+  let verdictClass, verdictLabel, verdictExpl;
+  const pct = Math.round(weightedScore * 100);
+  if (pct >= 78) {
+    verdictClass='match'; verdictLabel='PROBABLE MATCH';
+    verdictExpl='Multiple classical methods converge on a strong similarity score. Geometry, texture, and structural features all suggest these could be the same person.';
+  } else if (pct >= 58) {
+    verdictClass='likely'; verdictLabel='POSSIBLE MATCH';
+    verdictExpl='Some methods show strong similarity while others are weaker — possibly due to different lighting, angle, expression, or age. Results are inconclusive.';
+  } else if (pct >= 38) {
+    verdictClass='unsure'; verdictLabel='UNCERTAIN';
+    verdictExpl='Scores are mixed. Significant differences in geometry or texture suggest these may be different people, or the images are too different in pose/lighting to compare reliably.';
+  } else {
+    verdictClass='nomatch'; verdictLabel='UNLIKELY MATCH';
+    verdictExpl='Classical analysis finds substantial differences across most methods. These images are likely different people, or one image is too distorted to compare.';
+  }
+
+  const verdictEl = document.createElement('div');
+  verdictEl.innerHTML = `
+    <div class="verdict-box ${verdictClass}">
+      <div class="verdict-score">${pct}%</div>
+      <div class="verdict-label">${verdictLabel}</div>
+      <div class="verdict-explanation">${verdictExpl}</div>
+      <div style="margin-top:16px;display:flex;gap:20px;justify-content:center;flex-wrap:wrap">
+        ${methods.map(m=>`<div style="font-family:var(--mono);font-size:10px;letter-spacing:0.08em;">
+          <span style="color:var(--dim)">${m.abbr} </span>
+          <span style="color:${scoreColor(m.score)}">${Math.round(m.score*100)}%</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="verdict-disclaimer">
+      ⚠ EDUCATIONAL TOOL — This system uses classical computer vision methods and does not constitute identity verification. Classical methods have significant limitations vs modern neural face recognition. Scores above 70% are suggestive, not conclusive. Do not use for any real-world identity decisions.
+    </div>
+  `;
+  container.appendChild(verdictEl);
+
+  // ── Face previews with landmark overlays ────────────────────
+  const prevRow = document.createElement('div');
+  prevRow.className = 'face-previews';
+  prevRow.innerHTML = '<div class="face-preview-box"><div class="face-preview-label">REFERENCE — A</div></div><div class="face-preview-box"><div class="face-preview-label">COMPARISON — B</div></div>';
+
+  const boxA = prevRow.children[0], boxB = prevRow.children[1];
+  boxA.appendChild(makeLandmarkCanvas(state.imageA, state.landmarksA, 'a'));
+  boxB.appendChild(makeLandmarkCanvas(state.imageB, state.landmarksB, 'b'));
+  container.appendChild(prevRow);
+
+  // ── Progress overview ────────────────────────────────────────
+  const progPanel = document.createElement('div');
+  progPanel.className = 'panel';
+  progPanel.innerHTML = `<div class="panel-title">Method Scores Overview</div>
+    ${methods.map(m=>`
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:0.08em;margin-bottom:4px;">
+          <span style="color:var(--text2)">${m.name}</span>
+          <span style="color:${scoreColor(m.score)}">${Math.round(m.score*100)}%  <span style="color:var(--dim)">×${m.weight}</span></span>
+        </div>
+        <div class="progress-wrap" style="margin:0">
+          <div class="progress-bar" style="width:${m.score*100}%;background:${scoreColor(m.score)}"></div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+  container.appendChild(progPanel);
+
+  // ── Method cards ─────────────────────────────────────────────
+  const cardsWrap = document.createElement('div');
+  cardsWrap.innerHTML = '<div class="panel-title" style="font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:10px;">Method Breakdown <span style="flex:1;height:1px;background:var(--border);display:block"></span></div>';
+  const grid = document.createElement('div');
+  grid.className = 'results-grid';
+
+  methods.forEach(m => {
+    const tier = m.score >= 0.7 ? 'high' : m.score >= 0.45 ? 'medium' : 'low';
+    const card = document.createElement('div');
+    card.className = `method-card ${tier}`;
+    card.innerHTML = `
+      <div class="method-name">${m.abbr} — ${m.name}</div>
+      <div class="method-desc">${m.desc}</div>
+      <div class="score-row">
+        <div class="score-bar-wrap">
+          <div class="score-bar" style="width:${m.score*100}%;background:${scoreColor(m.score)}"></div>
+        </div>
+        <div class="score-val" style="color:${scoreColor(m.score)}">${Math.round(m.score*100)}%</div>
+      </div>
+      <table class="metric-table">
+        ${m.details.map(([k,v])=>`<tr><td>${k}</td><td class="val">${v}</td></tr>`).join('')}
+      </table>
+    `;
+    grid.appendChild(card);
+  });
+
+  cardsWrap.appendChild(grid);
+  container.appendChild(cardsWrap);
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function scoreColor(s) {
+  if (s >= 0.7) return 'var(--green)';
+  if (s >= 0.45) return 'var(--yellow)';
+  return 'var(--red)';
+}
+
+function makeLandmarkCanvas(img, lm, side) {
+  const c = document.createElement('canvas');
+  const W = img.naturalWidth, H = img.naturalHeight;
+  c.width = W; c.height = H;
+  c.className = 'face-preview-canvas';
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img,0,0);
+
+  // Draw mesh lines
+  const CONTOUR_GROUPS = [
+    { pts:[10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109,10], color: side==='a'?'rgba(79,142,255,0.7)':'rgba(46,204,138,0.7)', w:1.5 },
+    { pts:[33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246,33], color:'rgba(255,255,255,0.5)', w:1 },
+    { pts:[362,382,381,380,374,373,390,249,263,466,388,387,386,385,384,398,362], color:'rgba(255,255,255,0.5)', w:1 },
+    { pts:[61,185,40,39,37,0,267,269,270,409,78,95,88,178,87,14,317,402,318,324,308,415,310,311,312,13,82,81,80,191,61], color:'rgba(232,68,90,0.6)', w:1 },
+  ];
+
+  CONTOUR_GROUPS.forEach(({pts, color, w}) => {
+    ctx.strokeStyle = color; ctx.lineWidth = w;
+    ctx.beginPath();
+    pts.forEach((idx,i) => {
+      if(idx>=lm.length) return;
+      const p = lm[idx];
+      i===0 ? ctx.moveTo(p.x*W, p.y*H) : ctx.lineTo(p.x*W, p.y*H);
+    });
+    ctx.stroke();
+  });
+
+  // Landmark dots
+  const dotColor = side==='a'?'rgba(79,142,255,0.8)':'rgba(46,204,138,0.8)';
+  ctx.fillStyle = dotColor;
+  lm.forEach(p => {
+    ctx.beginPath(); ctx.arc(p.x*W, p.y*H, 1.2, 0, Math.PI*2); ctx.fill();
+  });
+  return c;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════════
+function showLoader(t='', s='') {
+  document.getElementById('loaderText').textContent = t;
+  document.getElementById('loaderSub').textContent = s;
+  document.getElementById('globalLoader').classList.add('visible');
+}
+function hideLoader() { document.getElementById('globalLoader').classList.remove('visible'); }
+
+let toastTimer;
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast show' + (type==='error'?' error':'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
