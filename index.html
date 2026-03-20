@@ -349,9 +349,7 @@ header {
       <div class="logo-name">FaceVerify</div>
       <div class="logo-tag">Educational Facial Recognition System</div>
     </div>
-  </div>
-  <div class="header-badge">⚠ EDUCATIONAL USE ONLY</div>
-</header>
+  </header>
 
 <!-- Steps nav -->
 <div class="steps-nav">
@@ -1000,11 +998,6 @@ async function runAnalysis() {
         </div>`).join('')}
       </div>
     </div>
-    <div class="verdict-disclaimer">
-      ⚠ EDUCATIONAL TOOL — This system uses classical computer vision methods and does not constitute identity verification. Classical methods have significant limitations vs modern neural face recognition. Scores above 70% are suggestive, not conclusive. Do not use for any real-world identity decisions.
-    </div>
-  `;
-  container.appendChild(verdictEl);
 
   // ── Face previews with landmark overlays ────────────────────
   const prevRow = document.createElement('div');
