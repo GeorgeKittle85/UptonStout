@@ -1,1446 +1,809 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FaceVerify — Neural + Classical</title>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js" crossorigin="anonymous"></script>
+<title>FaceID Lab — Educational Facial Recognition</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
-
-:root {
-  --bg: #07080d;
-  --bg2: #0b0d15;
-  --surface: #0f1120;
-  --surface2: #131628;
-  --border: #1c2035;
-  --border2: #252a45;
-  --accent: #4f8eff;
-  --accent-dim: rgba(79,142,255,0.12);
-  --green: #2ecc8a;
-  --green-dim: rgba(46,204,138,0.12);
-  --yellow: #f5c842;
-  --yellow-dim: rgba(245,200,66,0.12);
-  --red: #e8445a;
-  --red-dim: rgba(232,68,90,0.12);
-  --orange: #ff7c3a;
-  --purple: #a78bfa;
-  --purple-dim: rgba(167,139,250,0.12);
-  --text: #9aa5c0;
-  --text2: #c8d4f0;
-  --text3: #e8eeff;
-  --dim: #3a4560;
-  --mono: 'IBM Plex Mono', monospace;
-  --sans: 'IBM Plex Sans', sans-serif;
+:root{
+  --bg:#050c1a;--bg2:#0a1628;--bg3:#0f1e38;
+  --card:#0d1829;--card2:#111f36;
+  --border:rgba(0,200,255,.13);--border2:rgba(0,200,255,.25);
+  --cyan:#00c8ff;--green:#00ffb3;--red:#ff3d5a;--yellow:#ffd600;--purple:#a855f7;
+  --text:#ddeeff;--muted:#5b7499;--dim:#3a506b;
 }
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 14px; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  font-weight: 300;
-  min-height: 100vh;
-  line-height: 1.5;
-}
-
-.app { display: flex; flex-direction: column; min-height: 100vh; }
-
-header {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border2);
-  padding: 12px 24px;
-  display: flex; align-items: center; justify-content: space-between;
-  position: sticky; top: 0; z-index: 200;
-}
-.logo { display: flex; align-items: center; gap: 10px; }
-.logo-mark {
-  width: 30px; height: 30px; background: var(--accent-dim);
-  border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center;
-  font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 500;
-}
-.logo-name { font-family: var(--mono); font-size: 15px; color: var(--text3); letter-spacing: 0.05em; }
-.logo-tag  { font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: 0.15em; text-transform: uppercase; }
-
-.header-right { display:flex; gap:10px; align-items:center; }
-.header-badge {
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; padding: 4px 10px;
-  border: 1px solid var(--border2); color: var(--dim);
-}
-.header-badge.warn { background: var(--yellow-dim); border-color: var(--yellow); color: var(--yellow); }
-.header-badge.nn {
-  background: var(--purple-dim); border-color: var(--purple); color: var(--purple);
-  animation: pulse-badge 2.5s ease-in-out infinite;
-}
-@keyframes pulse-badge { 0%,100%{opacity:1} 50%{opacity:0.6} }
-
-.nn-status { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; display:flex; align-items:center; gap:6px; }
-.nn-dot { width:7px; height:7px; border-radius:50%; background:var(--dim); flex-shrink:0; transition:background 0.4s; }
-.nn-dot.loading { background:var(--yellow); animation: blink 1s infinite; }
-.nn-dot.ready   { background:var(--green); }
-.nn-dot.error   { background:var(--red); }
-
-.steps-nav {
-  background: var(--bg2); border-bottom: 1px solid var(--border);
-  display: flex; padding: 0 24px;
-}
-.step-tab {
-  padding: 10px 20px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--dim); border-bottom: 2px solid transparent;
-  cursor: default; display: flex; align-items: center; gap: 8px; transition: all 0.2s;
-}
-.step-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.step-tab.done   { color: var(--green); border-bottom-color: var(--green); cursor: pointer; }
-.step-tab.done:hover { opacity: 0.8; }
-.step-num {
-  width: 18px; height: 18px; border-radius: 50%; border: 1px solid currentColor;
-  display: flex; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0;
-}
-
-.content { flex: 1; padding: 24px; max-width: 1100px; margin: 0 auto; width: 100%; }
-
-.panel {
-  background: var(--surface); border: 1px solid var(--border);
-  padding: 20px; margin-bottom: 16px;
-}
-.panel-title {
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--accent); margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
-}
-.panel-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 700px) { .upload-grid { grid-template-columns: 1fr; } }
-
-.upload-slot {
-  border: 1px dashed var(--border2); aspect-ratio: 4/3;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  cursor: pointer; position: relative; overflow: hidden; transition: all 0.2s;
-  background: var(--bg2);
-}
-.upload-slot:hover { border-color: var(--accent); background: var(--accent-dim); }
-.upload-slot.drag-over { border-color: var(--accent); background: var(--accent-dim); }
-.upload-slot.has-image { border-style: solid; border-color: var(--border2); }
-.upload-slot input[type=file] {
-  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-}
-.upload-slot .slot-icon { font-size: 32px; opacity: 0.25; margin-bottom: 10px; }
-.upload-slot .slot-hint { font-family: var(--mono); font-size: 11px; color: var(--dim); letter-spacing: 0.08em; text-align: center; }
-.slot-preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
-.slot-preview.visible { display: block; }
-.slot-overlay {
-  position: absolute; inset: 0; background: rgba(7,8,13,0.7);
-  display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;
-}
-.upload-slot.has-image:hover .slot-overlay { opacity: 1; }
-.slot-overlay span { font-family: var(--mono); font-size: 11px; color: var(--text2); letter-spacing: 0.1em; }
-
-.slot-badge {
-  position: absolute; top: 10px; left: 10px; font-family: var(--mono); font-size: 9px;
-  letter-spacing: 0.12em; padding: 3px 8px; z-index: 5;
-}
-.slot-badge.a { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); }
-.slot-badge.b { background: var(--green-dim); border: 1px solid var(--green); color: var(--green); }
-
-.slot-status {
-  position: absolute; bottom: 10px; right: 10px; font-family: var(--mono); font-size: 9px;
-  letter-spacing: 0.1em; padding: 3px 8px; border: 1px solid; z-index: 5; display: none;
-}
-.slot-status.ok    { border-color: var(--green); color: var(--green); background: var(--green-dim); display: block; }
-.slot-status.error { border-color: var(--red);   color: var(--red);   background: var(--red-dim);   display: block; }
-.slot-status.processing { border-color: var(--yellow); color: var(--yellow); background: var(--yellow-dim); display: block; }
-
-.source-toggle { display: flex; gap: 0; margin-bottom: 12px; }
-.src-btn {
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; padding: 6px 16px;
-  border: 1px solid var(--border2); background: transparent; color: var(--dim); cursor: pointer; transition: all 0.15s;
-}
-.src-btn:not(:first-child) { border-left: 0; }
-.src-btn.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
-
-#liveSlot {
-  border: 1px solid var(--border2); aspect-ratio: 4/3; position: relative;
-  overflow: hidden; background: #000; display: none;
-}
-#liveSlot.visible { display: block; }
-#liveVideo { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-#captureBtn {
-  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; padding: 8px 24px;
-  border: 1px solid var(--accent); background: var(--accent-dim); color: var(--accent);
-  cursor: pointer; transition: all 0.2s; z-index: 10;
-}
-#captureBtn:hover { background: rgba(79,142,255,0.25); }
-#liveBadge {
-  position: absolute; top: 10px; left: 10px; font-family: var(--mono); font-size: 9px;
-  letter-spacing: 0.1em; padding: 3px 8px; border: 1px solid var(--green); color: var(--green);
-  background: var(--green-dim); z-index: 10; animation: blink 1.5s infinite;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
-
-.btn {
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-  padding: 10px 24px; border: 1px solid var(--border2); background: transparent; color: var(--text);
-  cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
-}
-.btn:hover { border-color: var(--text2); color: var(--text3); }
-.btn.primary { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-.btn.primary:hover { background: rgba(79,142,255,0.22); }
-.btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-
-.progress-wrap { background: var(--border); height: 3px; margin: 12px 0; overflow: hidden; }
-.progress-bar  { height: 100%; background: var(--accent); width: 0; transition: width 0.6s ease; }
-
-/* Results */
-.results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
-
-.method-card {
-  background: var(--surface2); border: 1px solid var(--border); padding: 16px;
-  position: relative; overflow: hidden; transition: border-color 0.2s;
-}
-.method-card::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-}
-.method-card.high   { border-color: rgba(46,204,138,0.3); }
-.method-card.high::before   { background: var(--green); }
-.method-card.medium { border-color: rgba(245,200,66,0.3); }
-.method-card.medium::before { background: var(--yellow); }
-.method-card.low    { border-color: rgba(232,68,90,0.3); }
-.method-card.low::before    { background: var(--red); }
-.method-card.neural { border-color: rgba(167,139,250,0.4) !important; }
-.method-card.neural::before { background: var(--purple) !important; }
-.method-card.neural-high { border-color: rgba(167,139,250,0.5) !important; }
-.method-card.neural-high::before { background: var(--purple) !important; }
-
-.neural-badge {
-  display:inline-flex; align-items:center; gap:5px;
-  font-family:var(--mono); font-size:9px; letter-spacing:0.12em;
-  padding:2px 8px; border:1px solid var(--purple); color:var(--purple);
-  background:var(--purple-dim); margin-bottom:8px;
-}
-
-.method-name { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; }
-.method-desc { font-size: 12px; color: var(--dim); margin-bottom: 12px; line-height: 1.5; }
-.score-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-.score-bar-wrap { flex: 1; height: 6px; background: var(--border); overflow: hidden; }
-.score-bar { height: 100%; transition: width 0.8s ease; }
-.score-val { font-family: var(--mono); font-size: 18px; font-weight: 500; min-width: 52px; text-align: right; }
-.method-detail { font-family: var(--mono); font-size: 10px; color: var(--dim); letter-spacing: 0.05em; line-height: 1.7; }
-.method-detail span { color: var(--text); }
-
-.verdict-box {
-  background: var(--surface2); border: 1px solid var(--border2); padding: 28px;
-  text-align: center; margin-bottom: 20px; position: relative; overflow: hidden;
-}
-.verdict-score { font-family: var(--mono); font-size: 72px; font-weight: 500; line-height: 1; margin-bottom: 8px; letter-spacing: -0.02em; }
-.verdict-label { font-family: var(--mono); font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 16px; }
-.verdict-explanation { font-size: 13px; color: var(--text); max-width: 500px; margin: 0 auto; line-height: 1.7; }
-.verdict-box.match   { border-color: rgba(46,204,138,0.4); }
-.verdict-box.match   .verdict-score, .verdict-box.match .verdict-label { color: var(--green); }
-.verdict-box.likely  { border-color: rgba(79,142,255,0.4); }
-.verdict-box.likely  .verdict-score, .verdict-box.likely .verdict-label { color: var(--accent); }
-.verdict-box.unsure  { border-color: rgba(245,200,66,0.4); }
-.verdict-box.unsure  .verdict-score, .verdict-box.unsure .verdict-label { color: var(--yellow); }
-.verdict-box.nomatch { border-color: rgba(232,68,90,0.4); }
-.verdict-box.nomatch .verdict-score, .verdict-box.nomatch .verdict-label { color: var(--red); }
-
-.verdict-disclaimer {
-  background: var(--yellow-dim); border: 1px solid rgba(245,200,66,0.3);
-  padding: 12px 16px; font-size: 12px; color: var(--yellow); margin-top: 12px; line-height: 1.6;
-  font-family: var(--mono);
-}
-
-.face-previews { display: flex; gap: 12px; margin-bottom: 20px; align-items: flex-start; }
-.face-preview-box { flex: 1; }
-.face-preview-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
-.face-preview-canvas { width: 100%; border: 1px solid var(--border); display: block; }
-
-.metric-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
-.metric-table th { text-align: left; padding: 6px 10px; color: var(--dim); letter-spacing: 0.1em; font-weight: 400; border-bottom: 1px solid var(--border); }
-.metric-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
-.metric-table td.val { color: var(--text3); }
-.metric-table tr:last-child td { border-bottom: none; }
-
-/* ── Neural Network Explainer ───────── */
-.nn-explainer {
-  background: var(--surface); border: 1px solid rgba(167,139,250,0.25);
-  padding: 0; margin-bottom: 16px; overflow: hidden;
-}
-.nn-explainer-header {
-  padding: 14px 20px; display:flex; align-items:center; justify-content:space-between;
-  border-bottom: 1px solid rgba(167,139,250,0.15); cursor:pointer;
-  background: linear-gradient(90deg, rgba(167,139,250,0.06), transparent);
-  user-select:none;
-}
-.nn-explainer-header:hover { background: linear-gradient(90deg, rgba(167,139,250,0.1), transparent); }
-.nn-explainer-title {
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--purple); display:flex; align-items:center; gap:10px;
-}
-.nn-explainer-toggle { font-family:var(--mono); font-size:10px; color:var(--dim); letter-spacing:0.1em; }
-.nn-explainer-body { padding: 20px; display:none; }
-.nn-explainer-body.open { display:block; }
-
-/* CNN diagram */
-.cnn-diagram { width:100%; overflow-x:auto; margin-bottom:20px; }
-.cnn-svg { min-width: 680px; }
-
-/* Comparison table */
-.compare-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:16px; }
-.compare-table th {
-  font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
-  padding:8px 12px; text-align:left; border-bottom:1px solid var(--border2); color:var(--dim);
-}
-.compare-table th.classical { color:var(--accent); }
-.compare-table th.neural    { color:var(--purple); }
-.compare-table td { padding:8px 12px; border-bottom:1px solid var(--border); color:var(--text); line-height:1.5; }
-.compare-table td:first-child { color:var(--text2); font-family:var(--mono); font-size:11px; letter-spacing:0.05em; }
-.compare-table td.win { color:var(--green); }
-.compare-table td.lose { color:var(--red); opacity:0.7; }
-.compare-table tr:last-child td { border:none; }
-
-/* Layer info cards */
-.layer-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px; margin-top:16px; }
-.layer-card {
-  background:var(--surface2); border:1px solid var(--border); padding:12px;
-  position:relative; overflow:hidden;
-}
-.layer-card::before {
-  content:''; position:absolute; left:0; top:0; bottom:0; width:2px;
-}
-.layer-card.conv::before   { background: var(--purple); }
-.layer-card.pool::before   { background: var(--accent); }
-.layer-card.relu::before   { background: var(--orange); }
-.layer-card.fc::before     { background: var(--green); }
-.layer-card.out::before    { background: var(--yellow); }
-.layer-card-name { font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:6px; }
-.layer-card.conv .layer-card-name { color:var(--purple); }
-.layer-card.pool .layer-card-name { color:var(--accent); }
-.layer-card.relu .layer-card-name { color:var(--orange); }
-.layer-card.fc   .layer-card-name { color:var(--green); }
-.layer-card.out  .layer-card-name { color:var(--yellow); }
-.layer-card-desc { font-size:11px; color:var(--dim); line-height:1.5; }
-
-/* Embedding viz */
-.embedding-viz { margin-top:16px; }
-.emb-bar-row { display:flex; align-items:center; gap:8px; margin-bottom:3px; }
-.emb-label { font-family:var(--mono); font-size:9px; color:var(--dim); width:40px; flex-shrink:0; }
-.emb-bar-track { flex:1; height:5px; background:var(--border); border-radius:0; }
-.emb-bar-fill { height:100%; border-radius:0; transition: width 0.6s ease; }
-
-/* Global loader */
-#globalLoader {
-  position: fixed; inset: 0; background: rgba(7,8,13,0.92); z-index: 999;
-  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
-}
-#globalLoader.visible { display: flex; }
-.loader-text { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 0.15em; }
-.loader-sub  { font-family: var(--mono); font-size: 10px; color: var(--dim); letter-spacing: 0.1em; }
-.spinner {
-  width: 40px; height: 40px; border: 2px solid var(--border2); border-top-color: var(--accent);
-  border-radius: 50%; animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.toast {
-  position: fixed; bottom: 20px; right: 20px; background: var(--surface2);
-  border: 1px solid var(--accent); color: var(--accent); font-family: var(--mono); font-size: 11px;
-  padding: 10px 18px; letter-spacing: 0.08em; opacity: 0; transform: translateY(8px);
-  transition: all 0.2s; pointer-events: none; z-index: 500;
-}
-.toast.show { opacity: 1; transform: translateY(0); }
-.toast.error { border-color: var(--red); color: var(--red); }
-
-.info-box {
-  background: var(--accent-dim); border: 1px solid rgba(79,142,255,0.3);
-  padding: 12px 16px; font-size: 12px; line-height: 1.7; color: var(--text); margin-bottom: 14px;
-}
-.info-box strong { color: var(--accent); font-weight: 600; }
-.info-box.purple { background: var(--purple-dim); border-color: rgba(167,139,250,0.3); }
-.info-box.purple strong { color: var(--purple); }
-
-.divider { height: 1px; background: var(--border); margin: 20px 0; }
-.hidden { display: none !important; }
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,200,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.5;z-index:10}
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+header{padding:28px 0 22px;border-bottom:1px solid var(--border)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-icon{width:46px;height:46px;border:2px solid var(--cyan);border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(0,200,255,.06);flex-shrink:0}
+.logo-icon svg{width:26px;height:26px}
+.logo h1{font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:800;background:linear-gradient(120deg,var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo p{font-size:.62rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
+.header-badge{padding:5px 14px;background:rgba(0,200,255,.08);border:1px solid var(--border2);border-radius:20px;font-size:.65rem;color:var(--cyan)}
+.section{margin:28px 0}
+.sec-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.sec-num{width:26px;height:26px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:.68rem;color:var(--cyan);flex-shrink:0}
+.sec-title{font-family:'Syne',sans-serif;font-size:.98rem;font-weight:700}
+.sec-sub{font-size:.63rem;color:var(--muted);margin-top:1px}
+.sec-line{flex:1;height:1px;background:var(--border)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:8px;border:none;font-family:'IBM Plex Mono',monospace;font-size:.76rem;cursor:pointer;transition:.2s;font-weight:500}
+.btn-ghost{background:var(--bg3);color:var(--text);border:1px solid var(--border2)}
+.btn-ghost:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-green{background:rgba(0,255,179,.1);color:var(--green);border:1px solid rgba(0,255,179,.25)}
+.btn-green:hover{background:rgba(0,255,179,.18)}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important}
+.drop-zone{border:2px dashed var(--border2);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:.2s;background:rgba(0,200,255,.02)}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--cyan);background:rgba(0,200,255,.05)}
+.dz-icon{font-size:2rem;margin-bottom:8px}
+.dz-label{font-size:.78rem;color:var(--text)}
+.dz-sub{font-size:.65rem;color:var(--muted);margin-top:6px}
+input[type=file]{display:none}
+.ref-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:14px}
+.ref-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
+.ref-card img{width:100%;height:100%;object-fit:cover}
+.ref-card .rmv{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(5,12,26,.8);border:1px solid var(--border2);color:var(--muted);font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
+.ref-card .rmv:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.ref-card .ref-num{position:absolute;bottom:5px;left:5px;padding:2px 6px;border-radius:4px;font-size:.58rem;background:rgba(0,200,255,.2);color:var(--cyan);border:1px solid rgba(0,200,255,.3)}
+.empty-state{text-align:center;padding:28px;color:var(--muted);font-size:.72rem}
+.empty-state .es-icon{font-size:2rem;margin-bottom:8px;opacity:.35;display:block}
+.stats-row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.stat-item{flex:1;min-width:110px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
+.stat-val{font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:700;color:var(--cyan)}
+.stat-lbl{font-size:.58rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.1em}
+.comp-tabs{display:flex;gap:8px;margin-bottom:16px}
+.comp-tab{padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:.7rem;cursor:pointer;transition:.2s}
+.comp-tab.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,200,255,.08)}
+.comp-panel{display:none}.comp-panel.active{display:block}
+.comp-preview{max-width:400px;margin:0 auto}
+.comp-preview img,.comp-preview canvas{width:100%;border-radius:10px;display:block;border:1px solid var(--border)}
+.video-wrap{position:relative;border-radius:10px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:420px;margin:0 auto}
+.video-wrap video{width:100%;height:100%;object-fit:cover;display:block}
+.video-wrap canvas{position:absolute;inset:0;width:100%;height:100%}
+.vid-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:.72rem}
+.video-controls{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.run-wrap{text-align:center;padding:22px 0;border-top:1px solid var(--border);margin-top:8px}
+.btn-run{padding:13px 44px;font-size:.9rem;border-radius:10px;background:linear-gradient(135deg,#00c8ff,#0050ff);border:none;color:#000;font-family:'Syne',sans-serif;font-weight:800;cursor:pointer;transition:.25s;box-shadow:0 0 28px rgba(0,200,255,.18);letter-spacing:-.3px}
+.btn-run:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 40px rgba(0,200,255,.3)}
+.btn-run:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.run-hint{font-size:.68rem;color:var(--muted);margin-top:10px}
+.spinner{width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:spin 1s linear infinite;display:inline-block}
+.loading-card{text-align:center;padding:40px 20px}
+.big-spinner{width:40px;height:40px;border-width:3px;margin:0 auto 16px}
+.loading-text{font-size:.78rem;color:var(--muted)}
+.loading-detail{font-size:.65rem;color:var(--dim);margin-top:6px}
+#resultsSection{display:none}
+.verdict-box{border-radius:14px;padding:28px;text-align:center;margin-bottom:20px;border:2px solid;animation:fadeUp .5s ease both}
+.verdict-box.match{background:rgba(0,255,179,.04);border-color:rgba(0,255,179,.4)}
+.verdict-box.no-match{background:rgba(255,61,90,.04);border-color:rgba(255,61,90,.4)}
+.verdict-box.uncertain{background:rgba(255,214,0,.04);border-color:rgba(255,214,0,.4)}
+.verdict-icon{font-size:2.8rem;margin-bottom:8px}
+.verdict-label{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;letter-spacing:-1px}
+.verdict-box.match .verdict-label{color:var(--green)}
+.verdict-box.no-match .verdict-label{color:var(--red)}
+.verdict-box.uncertain .verdict-label{color:var(--yellow)}
+.verdict-sub{font-size:.72rem;color:var(--muted);margin-top:6px;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.6}
+.gauge-wrap{margin:18px 0}
+.gauge-title{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
+.gauge-track{height:10px;background:var(--bg3);border-radius:5px;position:relative;overflow:visible}
+.gauge-fill{height:100%;border-radius:5px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.gauge-marker{position:absolute;top:-4px;width:18px;height:18px;border-radius:50%;border:3px solid var(--bg);margin-left:-9px;transition:left 1s cubic-bezier(.4,0,.2,1)}
+.threshold-line{position:absolute;top:-5px;height:20px;width:2px;background:var(--yellow)}
+.threshold-label{position:absolute;top:-20px;transform:translateX(-50%);font-size:.57rem;color:var(--yellow);white-space:nowrap}
+.gauge-labels{display:flex;justify-content:space-between;font-size:.58rem;color:var(--dim);margin-top:6px}
+.analysis-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin:14px 0}
+.analysis-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.ac-label{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.ac-value{font-size:.82rem;color:var(--text);line-height:1.6}
+.feature-list{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.feature-row{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px}
+.feature-icon{font-size:1rem;flex-shrink:0;margin-top:1px}
+.feature-name{font-size:.7rem;color:var(--cyan);font-weight:500;margin-bottom:3px}
+.feature-desc{font-size:.68rem;color:var(--muted);line-height:1.55}
+.feature-score{font-size:.65rem;padding:2px 8px;border-radius:12px;flex-shrink:0;white-space:nowrap;margin-top:2px}
+.fs-high{background:rgba(0,255,179,.12);color:var(--green);border:1px solid rgba(0,255,179,.25)}
+.fs-mid{background:rgba(255,214,0,.1);color:var(--yellow);border:1px solid rgba(255,214,0,.25)}
+.fs-low{background:rgba(255,61,90,.1);color:var(--red);border:1px solid rgba(255,61,90,.25)}
+.conf-bar-wrap{margin:8px 0}
+.conf-bar-track{height:7px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.conf-bar-fill{height:100%;border-radius:4px;transition:width .8s}
+.tabs-bar{display:flex;gap:2px;margin-bottom:18px;border-bottom:1px solid var(--border)}
+.tab-btn{padding:8px 14px;background:transparent;border:none;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:.7rem;cursor:pointer;border-bottom:2px solid transparent;transition:.2s;margin-bottom:-1px}
+.tab-btn.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.raw-output{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:.63rem;color:var(--muted);line-height:1.8;white-space:pre-wrap;max-height:400px;overflow-y:auto}
+.guide-intro{font-size:.76rem;color:var(--muted);line-height:1.75;max-width:680px;margin-bottom:22px}
+.accordion{display:flex;flex-direction:column;gap:10px}
+.acc-item{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.acc-head{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;background:var(--card);transition:.2s;user-select:none}
+.acc-head:hover{background:var(--card2)}
+.acc-num{width:24px;height:24px;border-radius:6px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:.63rem;color:var(--cyan);flex-shrink:0}
+.acc-title{font-family:'Syne',sans-serif;font-size:.86rem;font-weight:700;flex:1}
+.acc-tag{font-size:.58rem;padding:2px 8px;border-radius:4px;flex-shrink:0}
+.tag-classical{background:rgba(255,214,0,.1);color:var(--yellow);border:1px solid rgba(255,214,0,.3)}
+.tag-neural{background:rgba(168,85,247,.1);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+.tag-math{background:rgba(0,200,255,.1);color:var(--cyan);border:1px solid rgba(0,200,255,.3)}
+.acc-arrow{color:var(--muted);transition:.25s;font-size:.75rem;flex-shrink:0}
+.acc-head.open .acc-arrow{transform:rotate(180deg)}
+.acc-body{display:none;padding:18px 16px;background:var(--bg2);font-size:.74rem;line-height:1.8;color:var(--muted)}
+.acc-body.open{display:block}
+.acc-body h4{font-family:'Syne',sans-serif;font-size:.84rem;color:var(--text);margin:14px 0 7px}
+.acc-body h4:first-child{margin-top:0}
+.acc-body p{margin-bottom:9px}
+.acc-body ul{margin:0 0 10px 18px}
+.acc-body li{margin-bottom:3px}
+.acc-body code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--cyan);font-size:.7rem}
+.formula{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;margin:10px 0;text-align:center;font-size:.78rem;color:var(--green);letter-spacing:.05em}
+.compare-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.68rem}
+.compare-table th{text-align:left;padding:7px 10px;background:var(--bg3);color:var(--cyan);font-weight:500;border:1px solid var(--border)}
+.compare-table td{padding:6px 10px;border:1px solid var(--border)}
+.compare-table tr:nth-child(even) td{background:rgba(0,200,255,.02)}
+.highlight-box{padding:10px 14px;border-radius:8px;margin:10px 0;font-size:.71rem;line-height:1.7}
+.hb-cyan{background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.2);color:var(--text)}
+.hb-yellow{background:rgba(255,214,0,.06);border:1px solid rgba(255,214,0,.2);color:var(--text)}
+.hb-green{background:rgba(0,255,179,.06);border:1px solid rgba(0,255,179,.2);color:var(--text)}
+.pipeline{display:flex;flex-direction:column;gap:0;margin:12px 0}
+.pipe-row{display:flex;align-items:center;gap:10px;padding:7px 0}
+.pipe-connector{width:1px;height:14px;background:var(--border);margin-left:11px}
+.pipe-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:600;flex-shrink:0;border:1px solid}
+.pipe-content strong{color:var(--text);font-size:.76rem}
+.pipe-content span{color:var(--muted);font-size:.65rem;display:block;margin-top:1px}
+.info-row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.info-box{flex:1;min-width:140px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.66rem}
+.info-box label{color:var(--muted);display:block;margin-bottom:3px;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em}
+.notify{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.toast{padding:9px 14px;border-radius:8px;font-size:.7rem;border:1px solid;pointer-events:auto;animation:slideIn .25s ease;max-width:280px}
+.toast.info{background:rgba(0,200,255,.12);border-color:rgba(0,200,255,.3);color:var(--cyan)}
+.toast.success{background:rgba(0,255,179,.12);border-color:rgba(0,255,179,.3);color:var(--green)}
+.toast.error{background:rgba(255,61,90,.12);border-color:rgba(255,61,90,.3);color:var(--red)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@keyframes slideIn{from{transform:translateX(16px);opacity:0}to{transform:none;opacity:1}}
 </style>
 </head>
 <body>
-<div class="app">
-
-<div id="globalLoader">
-  <div class="spinner"></div>
-  <div class="loader-text" id="loaderText">INITIALIZING...</div>
-  <div class="loader-sub"  id="loaderSub">Loading models</div>
-</div>
-
-<div class="toast" id="toast"></div>
+<div class="notify" id="notify"></div>
+<div class="wrap">
 
 <header>
-  <div class="logo">
-    <div class="logo-mark">FV</div>
-    <div>
-      <div class="logo-name">FaceVerify</div>
-      <div class="logo-tag">Neural + Classical Recognition</div>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="5" height="5" rx="1" stroke="#00c8ff" stroke-width="1.5"/>
+          <rect x="16" y="3" width="5" height="5" rx="1" stroke="#00c8ff" stroke-width="1.5"/>
+          <rect x="3" y="16" width="5" height="5" rx="1" stroke="#00c8ff" stroke-width="1.5"/>
+          <rect x="16" y="16" width="5" height="5" rx="1" stroke="#00c8ff" stroke-width="1.5"/>
+          <circle cx="12" cy="12" r="3" stroke="#00ffb3" stroke-width="1.5"/>
+          <path d="M12 6.5V9M12 15v2.5M6.5 12H9M15 12h2.5" stroke="#00c8ff" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <h1>FaceID Lab</h1>
+        <p>Educational Facial Recognition System</p>
+      </div>
     </div>
-  </div>
-  <div class="header-right">
-    <div class="nn-status">
-      <div class="nn-dot loading" id="nnDot"></div>
-      <span id="nnStatusText" style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:0.08em">NN LOADING...</span>
-    </div>
-    <div class="header-badge nn">⬡ NEURAL NET</div>
-    <div class="header-badge warn">⚠ EDUCATIONAL USE ONLY</div>
+    <div class="header-badge">Claude Vision AI · 100% Browser-Side · No Data Stored</div>
   </div>
 </header>
 
-<div class="steps-nav">
-  <div class="step-tab active" id="tab1" onclick="goToStep(1)"><div class="step-num">1</div> Reference Photo</div>
-  <div class="step-tab"        id="tab2" onclick="goToStep(2)"><div class="step-num">2</div> Comparison Subject</div>
-  <div class="step-tab"        id="tab3" onclick="goToStep(3)"><div class="step-num">3</div> Analysis</div>
+<!-- SECTION 1: REFERENCE PHOTOS -->
+
+<div class="section">
+  <div class="sec-head">
+    <div class="sec-num">1</div>
+    <div>
+      <div class="sec-title">Reference Photos</div>
+      <div class="sec-sub">Upload 1–6 clear photos of the subject — more photos improve accuracy</div>
+    </div>
+    <div class="sec-line"></div>
+    <span id="refCountBadge" style="font-size:.65rem;color:var(--muted)">0 / 6</span>
+  </div>
+  <div class="card">
+    <div class="drop-zone" id="refDrop" onclick="document.getElementById('refInput').click()">
+      <div class="dz-icon">📸</div>
+      <div class="dz-label">Drag &amp; drop or click to upload</div>
+      <div class="dz-sub">JPG · PNG · WebP · Up to 6 photos</div>
+    </div>
+    <input type="file" id="refInput" multiple accept="image/*" onchange="addRefPhotos(this.files)">
+    <div id="refEmpty" class="empty-state"><span class="es-icon">🖼</span>No reference photos yet</div>
+    <div id="refGrid" class="ref-grid"></div>
+    <div id="refStats" style="display:none" class="stats-row">
+      <div class="stat-item"><div class="stat-val" id="sPhotoCount">0</div><div class="stat-lbl">Photos loaded</div></div>
+      <div class="stat-item"><div class="stat-val" id="sTotalSize">—</div><div class="stat-lbl">Total size</div></div>
+      <div class="stat-item"><div class="stat-val">max 512px</div><div class="stat-lbl">Process size</div></div>
+      <div class="stat-item"><div class="stat-val">Claude AI</div><div class="stat-lbl">Engine</div></div>
+    </div>
+  </div>
 </div>
 
-<!-- ══════════════════ STEP 1 ══════════════════ -->
-<div class="content" id="step1">
-  <div class="info-box">
-    <strong>How this works:</strong> Upload a clear, front-facing photo. Two pipelines run in parallel — <strong>MediaPipe Face Mesh</strong> (468 landmarks → 7 classical methods) and a <strong>Convolutional Neural Network</strong> via face-api.js (ResNet-based → 128-D embedding). Results from both are combined into a final weighted score.
-  </div>
-  <div class="info-box purple">
-    <strong>Neural Network:</strong> A ResNet-34-inspired CNN has been pretrained on thousands of faces to produce a 128-dimensional embedding vector where faces of the same person cluster close together in embedding space. This is the same principle used by FaceNet, ArcFace, and most modern face recognition systems.
-  </div>
+<!-- SECTION 2: COMPARISON -->
 
-  <div class="panel">
-    <div class="panel-title">Reference Photo — Person A</div>
-    <div class="upload-grid" style="grid-template-columns:1fr;">
-      <div class="upload-slot" id="slotA">
-        <input type="file" id="fileA" accept="image/*">
-        <div class="slot-badge a">REF A</div>
-        <div class="slot-status" id="statusA"></div>
-        <canvas class="slot-preview" id="previewA"></canvas>
-        <div class="slot-icon">⊕</div>
-        <div class="slot-hint">CLICK OR DROP PHOTO HERE<br><span style="font-size:10px;color:var(--dim)">Front-facing, well-lit photos work best</span></div>
-        <div class="slot-overlay"><span>CLICK TO CHANGE</span></div>
+<div class="section">
+  <div class="sec-head">
+    <div class="sec-num">2</div>
+    <div>
+      <div class="sec-title">Comparison Input</div>
+      <div class="sec-sub">Upload a photo or capture from your live camera</div>
+    </div>
+    <div class="sec-line"></div>
+  </div>
+  <div class="card">
+    <div class="comp-tabs">
+      <button class="comp-tab active" onclick="switchCompTab('upload',this)">📁 Upload Photo</button>
+      <button class="comp-tab" onclick="switchCompTab('camera',this)">📷 Live Camera</button>
+    </div>
+
+```
+<div class="comp-panel active" id="panel-upload">
+  <div class="drop-zone" id="compDrop" onclick="document.getElementById('compInput').click()">
+    <div class="dz-icon">🔍</div>
+    <div class="dz-label">Upload comparison photo</div>
+    <div class="dz-sub">The face to be identified</div>
+  </div>
+  <input type="file" id="compInput" accept="image/*" onchange="setCompPhoto(this.files[0])">
+  <div id="compPreviewWrap" style="display:none;margin-top:14px">
+    <div class="comp-preview"><img id="compImg" alt="comparison"></div>
+    <div style="font-size:.65rem;color:var(--green);text-align:center;margin-top:8px">✓ Comparison image loaded</div>
+  </div>
+</div>
+
+<div class="comp-panel" id="panel-camera">
+  <div class="video-wrap" id="videoWrap">
+    <video id="videoEl" autoplay muted playsinline></video>
+    <canvas id="liveCanvas"></canvas>
+    <div class="vid-placeholder" id="vidPlaceholder">
+      <span style="font-size:2rem">📷</span><span>Camera not started</span>
+    </div>
+  </div>
+  <div class="video-controls">
+    <button class="btn btn-ghost" id="startCamBtn" onclick="startCamera()">▶ Start Camera</button>
+    <button class="btn btn-ghost" id="stopCamBtn" onclick="stopCamera()" style="display:none">⬛ Stop</button>
+    <button class="btn btn-green" id="snapBtn" onclick="takeSnapshot()" style="display:none">📸 Capture Frame</button>
+    <button class="btn btn-ghost" id="liveBtn" onclick="toggleLive()" style="display:none">⚡ Live Analysis: OFF</button>
+  </div>
+  <div id="snapPreview" style="display:none;margin-top:14px">
+    <div style="font-size:.63rem;color:var(--muted);margin-bottom:7px;text-align:center">SNAPSHOT</div>
+    <div class="comp-preview"><canvas id="snapCanvas"></canvas></div>
+    <div style="font-size:.65rem;color:var(--green);text-align:center;margin-top:8px">✓ Snapshot captured</div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- RUN -->
+
+<div class="run-wrap">
+  <button class="btn-run" id="runBtn" onclick="runAnalysis()" disabled>🔬 Run Facial Recognition Analysis</button>
+  <div class="run-hint" id="runHint">Add reference photos and a comparison image to begin</div>
+</div>
+
+<!-- SECTION 3: RESULTS -->
+
+<div class="section" id="resultsSection">
+  <div class="sec-head">
+    <div class="sec-num">3</div>
+    <div>
+      <div class="sec-title">Analysis Results</div>
+      <div class="sec-sub">AI-powered facial recognition output</div>
+    </div>
+    <div class="sec-line"></div>
+    <button class="btn btn-ghost" onclick="resetResults()" style="font-size:.65rem;padding:5px 12px">↺ Reset</button>
+  </div>
+  <div class="card">
+    <div class="loading-card" id="loadingState" style="display:none">
+      <div class="spinner big-spinner"></div>
+      <div class="loading-text">Analyzing faces with Claude Vision AI...</div>
+      <div class="loading-detail" id="loadingDetail">Sending images to AI model...</div>
+    </div>
+    <div id="resultsContent" style="display:none">
+      <div id="verdictBox" class="verdict-box match">
+        <div class="verdict-icon" id="verdictIcon">—</div>
+        <div class="verdict-label" id="verdictLabel">—</div>
+        <div class="verdict-sub" id="verdictSub">—</div>
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge-title">Match Confidence Score</div>
+        <div class="gauge-track">
+          <div class="gauge-fill" id="gaugeFill" style="width:0%"></div>
+          <div class="gauge-marker" id="gaugeMarker" style="left:0%"></div>
+          <div class="threshold-line" style="left:60%"><span class="threshold-label">60% threshold</span></div>
+        </div>
+        <div class="gauge-labels"><span>0% — No similarity</span><span>60% — Decision boundary</span><span>100% — Certain match</span></div>
+      </div>
+      <div class="tabs-bar">
+        <button class="tab-btn active" onclick="switchResTab('summary',this)">Summary</button>
+        <button class="tab-btn" onclick="switchResTab('features',this)">Feature Analysis</button>
+        <button class="tab-btn" onclick="switchResTab('technical',this)">Technical</button>
+        <button class="tab-btn" onclick="switchResTab('raw',this)">Raw JSON</button>
+      </div>
+      <div class="tab-panel active" id="tab-summary">
+        <div class="stats-row" id="summaryStats"></div>
+        <div class="analysis-grid" id="summaryGrid"></div>
+      </div>
+      <div class="tab-panel" id="tab-features">
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:12px">Point-by-point AI analysis of individual facial features, each scored independently.</div>
+        <div class="feature-list" id="featureList"></div>
+      </div>
+      <div class="tab-panel" id="tab-technical">
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:12px">Technical metadata from the analysis pipeline.</div>
+        <div class="info-row" id="techData"></div>
+        <div style="margin-top:14px;font-size:.68rem;color:var(--muted);margin-bottom:7px">CONFIDENCE BY FEATURE</div>
+        <div id="confBreakdown"></div>
+      </div>
+      <div class="tab-panel" id="tab-raw">
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:10px">Raw JSON output from Claude's analysis.</div>
+        <pre class="raw-output" id="rawOutput"></pre>
       </div>
     </div>
   </div>
+</div>
 
-  <div class="btn-row">
-    <button class="btn primary" id="nextTo2" disabled onclick="goToStep(2)">NEXT: ADD COMPARISON →</button>
-    <span id="step1hint" style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:0.1em">Upload a reference photo to continue</span>
+<!-- SECTION 4: GUIDE -->
+
+<div class="section" style="margin-top:40px">
+  <div class="sec-head">
+    <div class="sec-num">📖</div>
+    <div>
+      <div class="sec-title">How Facial Recognition Works — Technical Guide</div>
+      <div class="sec-sub">Classical computer vision vs modern deep learning, explained</div>
+    </div>
+    <div class="sec-line"></div>
+  </div>
+
+  <p class="guide-intro">Facial recognition pipelines combine image processing, geometry, and machine learning. This guide walks through every stage — from detecting a face in raw pixels to making a final match/no-match decision — contrasting historical classical methods with modern neural approaches.</p>
+
+  <div class="accordion">
+
+```
+<div class="acc-item">
+  <div class="acc-head" onclick="toggleAcc(this)">
+    <div class="acc-num">1</div>
+    <div class="acc-title">Face Detection — Finding the Face in an Image</div>
+    <span class="acc-tag tag-classical">Classical: Viola-Jones</span>
+    <span class="acc-tag tag-neural">Neural: MTCNN / SSD</span>
+    <span class="acc-arrow">▼</span>
+  </div>
+  <div class="acc-body">
+    <h4>What is Face Detection?</h4>
+    <p>Before recognition can happen, the system must <em>locate</em> all faces in the image. This is a binary classification problem (face vs background) repeated at every position and scale in the image using a sliding window approach.</p>
+    <h4>🕰 Classical: Viola-Jones (2001)</h4>
+    <p>Three core innovations made it the first real-time face detector:</p>
+    <ul>
+      <li><strong>Haar-like features:</strong> Simple rectangular brightness-difference patterns. Eyes are darker than cheeks; the nose bridge is lighter than sides. 160,000+ such features exist per detection window.</li>
+      <li><strong>Integral Image:</strong> A precomputed lookup table so any rectangular region sum costs exactly 4 operations — O(1). Without it, evaluating all Haar features would be impossibly slow.</li>
+      <li><strong>AdaBoost + Cascade:</strong> AdaBoost picks the 200 most discriminative features. They're arranged in a cascade — cheap early stages reject 99.9% of non-face regions before expensive later stages run.</li>
+    </ul>
+    <div class="highlight-box hb-yellow">⚡ Viola-Jones ran at 15 fps on 2001 hardware. Still shipped in OpenCV today. Its main limitation: only reliable for near-frontal faces within ±30° tilt.</div>
+    <h4>🤖 Neural: MTCNN / SSD MobileNet</h4>
+    <p>Modern CNNs learn features hierarchically from millions of training images — edges → facial parts → faces — entirely from data. They handle rotation to ±45°, occlusion, diverse lighting, and varied ethnicity with 97–99% accuracy vs Viola-Jones' ~88%.</p>
+    <table class="compare-table">
+      <tr><th>Property</th><th>Viola-Jones</th><th>Neural (MTCNN)</th></tr>
+      <tr><td>Year</td><td>2001</td><td>2016</td></tr>
+      <tr><td>Features</td><td>Hand-crafted (Haar)</td><td>Learned (CNN)</td></tr>
+      <tr><td>Accuracy</td><td>~88% frontal</td><td>97–99%</td></tr>
+      <tr><td>Rotation tolerance</td><td>±30°</td><td>±45°+</td></tr>
+    </table>
   </div>
 </div>
 
-<!-- ══════════════════ STEP 2 ══════════════════ -->
-<div class="content hidden" id="step2">
-  <div class="info-box">
-    <strong>Comparison subject:</strong> Upload a second photo or use live camera. Both classical and neural pipelines will process this image for a fair comparison against the reference.
+<div class="acc-item">
+  <div class="acc-head" onclick="toggleAcc(this)">
+    <div class="acc-num">2</div>
+    <div class="acc-title">Facial Landmarks — Mapping 68 Key Points</div>
+    <span class="acc-tag tag-classical">Classical: ASM / AAM</span>
+    <span class="acc-tag tag-neural">Neural: CNN Regression</span>
+    <span class="acc-arrow">▼</span>
   </div>
+  <div class="acc-body">
+    <h4>What are Landmarks?</h4>
+    <p>Landmarks are precise (x,y) coordinates at anatomical locations: 17 jaw points, 10 eyebrow points, 9 nose points, 12 eye points, 20 mouth points. They enable two things:</p>
+    <ul>
+      <li><strong>Face alignment:</strong> Rotate and scale so eye centers always land at fixed positions, removing the largest sources of pose variation before recognition</li>
+      <li><strong>Geometric analysis:</strong> Compute classical ratios — face aspect, interpupillary distance, nose-mouth proportions</li>
+    </ul>
+    <h4>🕰 Classical: Active Shape Models (Cootes, 1995)</h4>
+    <p>ASMs learn a <strong>statistical shape model</strong> of valid face configurations via PCA. Fitting iteratively moves landmarks toward strong image gradients while staying within ±3 standard deviations of the learned shape distribution — preventing physically impossible configurations.</p>
+    <h4>🤖 Neural: CNN Regression (Hourglass Networks)</h4>
+    <p>A CNN trained end-to-end directly outputs all 68 (x,y) values from a cropped face crop. Stacked Hourglass networks progressively refine predictions — similar in spirit to ASM's iterative fitting but learned entirely from data. Modern accuracy: &lt;1px mean error on benchmarks.</p>
+    <div class="highlight-box hb-green">📐 <strong>Affine alignment:</strong> Compute the angle θ between eye center coordinates, rotate the image by −θ, then scale so the inter-eye distance equals a fixed target (e.g., 72px). This normalization step is why recognition works across different photo distances.</div>
+  </div>
+</div>
 
-  <div class="panel">
-    <div class="panel-title">Comparison Subject — Person B</div>
-    <div class="source-toggle">
-      <button class="src-btn active" id="srcPhoto"  onclick="setCompareSource('photo')">📷 UPLOAD PHOTO</button>
-      <button class="src-btn"        id="srcCamera" onclick="setCompareSource('camera')">🎥 LIVE CAMERA</button>
-    </div>
+<div class="acc-item">
+  <div class="acc-head" onclick="toggleAcc(this)">
+    <div class="acc-num">3</div>
+    <div class="acc-title">Feature Extraction — Encoding Identity as Numbers</div>
+    <span class="acc-tag tag-classical">Classical: Eigenfaces / HOG / LBP</span>
+    <span class="acc-tag tag-neural">Neural: ResNet Embeddings</span>
+    <span class="acc-arrow">▼</span>
+  </div>
+  <div class="acc-body">
+    <h4>The Core Challenge</h4>
+    <p>Convert a face image into a compact vector where same-person faces cluster together and different-person faces are far apart — across all lighting, expression, and pose variations.</p>
+    <h4>🕰 Eigenfaces — PCA (Turk &amp; Pentland, 1991)</h4>
+    <p>Apply PCA to a database of flattened face images. Each image is a point in high-dimensional space (e.g. 150×150 = 22,500 dims). PCA finds the "eigenfaces" — directions of maximum variance — and projects each new face onto the top K eigenvectors:</p>
+    <div class="formula">f = Wᵀ(x − μ) &nbsp; where W = [e₁, e₂, ..., eₖ]</div>
+    <p>Works well in controlled studio lighting. Fails with real-world illumination variation because PCA captures lighting changes as identity differences.</p>
+    <h4>🕰 HOG — Histogram of Oriented Gradients</h4>
+    <p>Divide image into 8×8 pixel cells. For each pixel, compute gradient direction and magnitude. Build a 9-bin histogram of directions per cell. Normalize across 2×2 cell blocks for illumination invariance. Concatenate all histograms into one feature vector. A linear SVM on HOG achieves ~97% face detection accuracy.</p>
+    <h4>🤖 Neural: ResNet Embeddings with Triplet Loss (FaceNet, dlib)</h4>
+    <p>A deep residual network trained using <strong>triplet loss</strong> on millions of face pairs. Given anchor A, positive P (same person), negative N (different person):</p>
+    <div class="formula">L = max(0, d(A,P) − d(A,N) + α)</div>
+    <p>The loss forces same-person pairs closer and different-person pairs further apart by margin α. After training, the network outputs a 128-d embedding where Euclidean distance directly measures identity similarity.</p>
+    <div class="highlight-box hb-cyan">✦ This tool uses Claude's multimodal vision model as the "feature extractor" — its internal representations, built from pretraining on vast image datasets, act as a very large embedding network that can also articulate its reasoning in natural language.</div>
+  </div>
+</div>
 
-    <div id="photoUploadWrap">
-      <div class="upload-slot" id="slotB">
-        <input type="file" id="fileB" accept="image/*">
-        <div class="slot-badge b">CMP B</div>
-        <div class="slot-status" id="statusB"></div>
-        <canvas class="slot-preview" id="previewB"></canvas>
-        <div class="slot-icon">⊕</div>
-        <div class="slot-hint">CLICK OR DROP PHOTO HERE</div>
-        <div class="slot-overlay"><span>CLICK TO CHANGE</span></div>
+<div class="acc-item">
+  <div class="acc-head" onclick="toggleAcc(this)">
+    <div class="acc-num">4</div>
+    <div class="acc-title">Matching &amp; Decision — Making the Call</div>
+    <span class="acc-tag tag-math">Distance Metrics + Thresholds</span>
+    <span class="acc-arrow">▼</span>
+  </div>
+  <div class="acc-body">
+    <h4>Distance Metrics</h4>
+    <p><strong>Euclidean Distance</strong> (standard for dlib ResNet-34):</p>
+    <div class="formula">d(a,b) = √( Σᵢ (aᵢ − bᵢ)² )</div>
+    <p><strong>Cosine Similarity</strong> (scale-invariant, good for normalized embeddings):</p>
+    <div class="formula">cos(a,b) = (a · b) / (‖a‖ · ‖b‖)</div>
+    <h4>Standard Thresholds (128-d Euclidean)</h4>
+    <table class="compare-table">
+      <tr><th>Distance</th><th>Interpretation</th></tr>
+      <tr><td>0.0 – 0.3</td><td>Very high confidence match</td></tr>
+      <tr><td>0.3 – 0.5</td><td>Confident match</td></tr>
+      <tr><td>0.5 – 0.6</td><td>Probable match (boundary zone)</td></tr>
+      <tr><td>0.6 – 0.8</td><td>Likely different person</td></tr>
+      <tr><td>0.8+</td><td>Confident different person</td></tr>
+    </table>
+    <h4>Why Average Multiple Reference Photos?</h4>
+    <p>Single photos carry per-image noise (lighting, expression, angle). Averaging N descriptors produces a centroid more representative of true identity:</p>
+    <div class="formula">d = ‖ (1/N)·Σ refᵢ − comp ‖</div>
+    <p>This is nearest-centroid classification — one of the simplest yet most effective classifiers in ML, dating back to the 1960s.</p>
+    <h4>Limitations</h4>
+    <ul>
+      <li><strong>Demographic bias:</strong> Models trained on imbalanced data show higher false-positive rates for underrepresented groups</li>
+      <li><strong>Identical twins:</strong> Genetic similarity pushes descriptors below threshold — they will match each other</li>
+      <li><strong>Aging:</strong> 10+ year gaps reduce accuracy; separate age-invariant models exist (AgeDB benchmark)</li>
+      <li><strong>Quality:</strong> Face width &lt;80px, motion blur, or &gt;45° pose angle all significantly degrade accuracy</li>
+    </ul>
+    <div class="highlight-box hb-yellow">⚖ Ethics: Facial recognition must only be used with full consent of all subjects. This tool processes images locally via API — no photo data is retained after the API call returns.</div>
+  </div>
+</div>
+
+<div class="acc-item">
+  <div class="acc-head" onclick="toggleAcc(this)">
+    <div class="acc-num">5</div>
+    <div class="acc-title">This Tool's Architecture — End-to-End Pipeline</div>
+    <span class="acc-tag tag-math">System Overview</span>
+    <span class="acc-arrow">▼</span>
+  </div>
+  <div class="acc-body">
+    <h4>Processing Pipeline</h4>
+    <div class="pipeline">
+      <div class="pipe-row">
+        <div class="pipe-dot" style="background:rgba(0,200,255,.1);border-color:var(--cyan);color:var(--cyan)">1</div>
+        <div class="pipe-content"><strong>Image Upload &amp; Resize</strong><span>Photos loaded as DataURLs in-browser. Downscaled to max 512px per side for efficient API transmission via canvas.toDataURL().</span></div>
+      </div>
+      <div class="pipe-connector"></div>
+      <div class="pipe-row">
+        <div class="pipe-dot" style="background:rgba(255,214,0,.1);border-color:var(--yellow);color:var(--yellow)">2</div>
+        <div class="pipe-content"><strong>Base64 Encoding</strong><span>Images converted to base64 strings and packed into Anthropic Messages API content blocks with type: "image".</span></div>
+      </div>
+      <div class="pipe-connector"></div>
+      <div class="pipe-row">
+        <div class="pipe-dot" style="background:rgba(168,85,247,.1);border-color:var(--purple);color:var(--purple)">3</div>
+        <div class="pipe-content"><strong>Claude Vision Multimodal Analysis</strong><span>All images + a structured system prompt are sent to claude-sonnet. The model performs detection, feature comparison, and geometric reasoning internally using its learned representations.</span></div>
+      </div>
+      <div class="pipe-connector"></div>
+      <div class="pipe-row">
+        <div class="pipe-dot" style="background:rgba(0,255,179,.1);border-color:var(--green);color:var(--green)">4</div>
+        <div class="pipe-content"><strong>Structured JSON Response</strong><span>Claude returns a strict JSON object: verdict, confidence 0–100, per-feature analysis array, supporting/contradicting evidence, quality notes, and technical metadata.</span></div>
+      </div>
+      <div class="pipe-connector"></div>
+      <div class="pipe-row">
+        <div class="pipe-dot" style="background:rgba(255,61,90,.1);border-color:var(--red);color:var(--red)">5</div>
+        <div class="pipe-content"><strong>Visualization</strong><span>JSON parsed and rendered into verdict card, confidence gauge, feature breakdown table, confidence bars, and raw JSON view.</span></div>
       </div>
     </div>
-
-    <div id="liveSlot">
-      <video id="liveVideo" playsinline autoplay muted></video>
-      <div id="liveBadge">● LIVE</div>
-      <button id="captureBtn" onclick="captureLiveFrame()">📸 CAPTURE FRAME</button>
-    </div>
-  </div>
-
-  <div class="btn-row">
-    <button class="btn" onclick="goToStep(1)">← BACK</button>
-    <button class="btn primary" id="analyzeBtn" disabled onclick="runAnalysis()">RUN ANALYSIS →</button>
-    <span id="step2hint" style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:0.1em">Add a comparison subject to continue</span>
+    <h4>What Makes Claude's Analysis Different from Classic Methods</h4>
+    <p>Unlike a single Euclidean distance score, Claude evaluates multiple independent cues and combines them — analogous to how <strong>ensemble learning</strong> (boosting, bagging) combines weak classifiers into a stronger one:</p>
+    <ul>
+      <li>Structural geometry: jaw, cheekbones, cranial width, facial thirds</li>
+      <li>Specific features: eye shape/spacing, nose bridge, mouth morphology, ears</li>
+      <li>Contextual factors: lighting variation, expression change, grooming, aging</li>
+      <li>Holistic gestalt: overall impression weighted by reliability of each cue</li>
+    </ul>
+    <p>The natural language output also provides <strong>interpretability</strong> — a property that single-metric distance scores fundamentally lack. This is the key advantage of neuro-symbolic and explainable AI approaches over pure black-box embedding systems.</p>
   </div>
 </div>
+```
 
-<!-- ══════════════════ STEP 3 ══════════════════ -->
-<div class="content hidden" id="step3">
-  <div id="resultsContainer"></div>
-  <div class="btn-row" style="margin-top:20px;">
-    <button class="btn" onclick="goToStep(1)">← START OVER</button>
-    <button class="btn" onclick="goToStep(2)">← CHANGE COMPARISON</button>
   </div>
 </div>
-
-</div><!-- .app -->
+<div style="height:60px"></div>
+</div>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════════
-const state = {
-  faceMesh: null, modelReady: false,
-  nnReady: false,
-  imageA: null, landmarksA: null, cropA: null, descriptorA: null,
-  imageB: null, landmarksB: null, cropB: null, descriptorB: null,
-  stream: null, compareSource: 'photo',
-};
+const $ = id => document.getElementById(id);
+let refPhotos = [], compPhoto = null, liveStream = null, liveActive = false, liveTimer = null;
 
-// ═══════════════════════════════════════════════════════════
-// NEURAL NETWORK — face-api.js init
-// ═══════════════════════════════════════════════════════════
-const WEIGHTS_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
-
-async function initNeuralNet() {
-  try {
-    setNNStatus('loading', 'NN LOADING...');
-    await Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(WEIGHTS_URL),
-      faceapi.nets.faceLandmark68Net.loadFromUri(WEIGHTS_URL),
-      faceapi.nets.faceRecognitionNet.loadFromUri(WEIGHTS_URL),
-    ]);
-    state.nnReady = true;
-    setNNStatus('ready', 'NN READY');
-  } catch(e) {
-    console.warn('face-api.js models failed to load:', e);
-    setNNStatus('error', 'NN UNAVAILABLE');
-  }
+function toast(msg, type='info', dur=4000){
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  $('notify').appendChild(el);
+  setTimeout(() => el.remove(), dur);
 }
 
-function setNNStatus(type, text) {
-  const dot = document.getElementById('nnDot');
-  const lbl = document.getElementById('nnStatusText');
-  dot.className = 'nn-dot ' + type;
-  lbl.textContent = text;
-  lbl.style.color = type === 'ready' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--yellow)';
+function readFile(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=e=>res(e.target.result); r.onerror=rej; r.readAsDataURL(file); }); }
+
+function resizeDataUrl(dataUrl, max=512){ return new Promise(res=>{ const img=new Image(); img.onload=()=>{ const s=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement('canvas'); c.width=Math.round(img.width*s); c.height=Math.round(img.height*s); c.getContext('2d').drawImage(img,0,0,c.width,c.height); res(c.toDataURL('image/jpeg',.85)); }; img.src=dataUrl; }); }
+
+function fmtBytes(b){ return b<1024?b+'B':b<1048576?(b/1024).toFixed(1)+'KB':(b/1048576).toFixed(1)+'MB'; }
+function b64(d){ return d.split(',')[1]; }
+function mime(d){ return d.split(';')[0].split(':')[1]||'image/jpeg'; }
+
+function updateRunBtn(){
+  const ok = refPhotos.length>=1 && compPhoto;
+  $('runBtn').disabled = !ok;
+  if(!ok) $('runHint').textContent = refPhotos.length===0&&!compPhoto ? 'Add reference photos and a comparison image to begin' : refPhotos.length===0 ? 'Add at least 1 reference photo' : 'Add a comparison photo or capture a snapshot';
+  else $('runHint').textContent = `Ready — ${refPhotos.length} reference photo${refPhotos.length>1?'s':''} loaded`;
 }
 
-async function getNNDescriptor(imgElement) {
-  if (!state.nnReady) return null;
-  try {
-    const detection = await faceapi
-      .detectSingleFace(imgElement, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 }))
-      .withFaceLandmarks()
-      .withFaceDescriptor();
-    if (!detection) return null;
-    return detection.descriptor; // Float32Array[128]
-  } catch(e) {
-    console.warn('NN descriptor error:', e);
-    return null;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// MEDIAPIPE INIT
-// ═══════════════════════════════════════════════════════════
-async function initModel() {
-  showLoader('LOADING CLASSICAL MODEL...', 'Downloading MediaPipe Face Mesh weights (~8 MB)');
-  state.faceMesh = new FaceMesh({
-    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${f}`
-  });
-  state.faceMesh.setOptions({ maxNumFaces:1, refineLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
-  state.faceMesh.onResults(() => {});
-  await state.faceMesh.initialize();
-  state.modelReady = true;
-  hideLoader();
-}
-
-async function detectFace(imgElement) {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('Detection timeout')), 15000);
-    state.faceMesh.onResults(results => {
-      clearTimeout(timeout);
-      const faces = results.multiFaceLandmarks || [];
-      resolve(faces.length === 0 ? null : faces[0]);
-    });
-    state.faceMesh.send({ image: imgElement }).catch(reject);
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-// STEP NAV
-// ═══════════════════════════════════════════════════════════
-let maxStep = 1;
-
-function goToStep(n) {
-  if (n > maxStep) return;
-  [1,2,3].forEach(i => {
-    document.getElementById(`step${i}`).classList.toggle('hidden', i !== n);
-    const tab = document.getElementById(`tab${i}`);
-    tab.classList.remove('active','done');
-    if (i === n) tab.classList.add('active');
-    else if (i < n || i <= maxStep) tab.classList.add('done');
-  });
-}
-function advanceStep(n) { maxStep = Math.max(maxStep, n); goToStep(n); }
-
-// ═══════════════════════════════════════════════════════════
-// FILE HANDLING
-// ═══════════════════════════════════════════════════════════
-function setupSlot(inputId, slotId, previewId, statusId, onSuccess) {
-  const input   = document.getElementById(inputId);
-  const slot    = document.getElementById(slotId);
-  const preview = document.getElementById(previewId);
-
-  const handler = async (file) => {
-    if (!file || !file.type.startsWith('image/')) return;
-    setStatus(statusId, 'processing', 'PROCESSING...');
-    const img = await loadImageFromFile(file);
-    preview.width = img.naturalWidth; preview.height = img.naturalHeight;
-    preview.getContext('2d').drawImage(img, 0, 0);
-    preview.classList.add('visible');
-    slot.classList.add('has-image');
-    slot.querySelector('.slot-icon').style.display = 'none';
-    slot.querySelector('.slot-hint').style.display = 'none';
-    await onSuccess(img);
-  };
-
-  input.addEventListener('change', e => { if(e.target.files[0]) handler(e.target.files[0]); });
-  slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drag-over'); });
-  slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
-  slot.addEventListener('drop', e => {
-    e.preventDefault(); slot.classList.remove('drag-over');
-    const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) handler(f);
-  });
-}
-
-async function loadImageFromFile(file) {
-  return new Promise(res => {
-    const r = new FileReader();
-    r.onload = e => { const img = new Image(); img.onload = () => res(img); img.src = e.target.result; };
-    r.readAsDataURL(file);
-  });
-}
-
-function setStatus(id, type, text) {
-  const el = document.getElementById(id);
-  el.className = 'slot-status ' + type;
-  el.textContent = text;
-}
-
-// Slot A
-setupSlot('fileA', 'slotA', 'previewA', 'statusA', async (img) => {
-  if (!state.modelReady) await initModel();
-  showLoader('DETECTING FACE A...', 'Running MediaPipe landmark detection');
-  try {
-    const lm = await detectFace(img);
-    if (!lm) { hideLoader(); setStatus('statusA','error','NO FACE FOUND'); toast('No face detected in image A','error'); return; }
-    state.imageA = img; state.landmarksA = lm;
-    state.cropA = extractFaceCrop(img, lm);
-
-    // Parallel: get NN descriptor
-    showLoader('COMPUTING NEURAL EMBEDDING A...', 'Running ResNet-based face encoder (128-D)');
-    state.descriptorA = await getNNDescriptor(img);
-    hideLoader();
-
-    const nnNote = state.descriptorA ? ' + NN ✓' : '';
-    setStatus('statusA','ok',`✓ ${lm.length} LM${nnNote}`);
-    document.getElementById('nextTo2').disabled = false;
-    document.getElementById('step1hint').textContent = `Face detected — ${lm.length} landmarks${state.nnReady ? ' + 128-D embedding' : ''}`;
-    toast('Reference face processed!');
-    maxStep = Math.max(maxStep, 2);
-    document.getElementById('tab2').classList.add('done');
-  } catch(e) { hideLoader(); setStatus('statusA','error','ERROR'); toast('Detection failed','error'); console.error(e); }
+// DRAG/DROP
+['refDrop','compDrop'].forEach(id=>{
+  const el=$( id);
+  el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('dragover');});
+  el.addEventListener('dragleave',()=>el.classList.remove('dragover'));
+  el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('dragover'); if(id==='refDrop') addRefPhotos(e.dataTransfer.files); else setCompPhoto(e.dataTransfer.files[0]);});
 });
 
-// Slot B
-setupSlot('fileB', 'slotB', 'previewB', 'statusB', async (img) => {
-  if (!state.modelReady) await initModel();
-  showLoader('DETECTING FACE B...', 'Running MediaPipe landmark detection');
-  try {
-    const lm = await detectFace(img);
-    if (!lm) { hideLoader(); setStatus('statusB','error','NO FACE FOUND'); toast('No face detected in image B','error'); return; }
-    state.imageB = img; state.landmarksB = lm;
-    state.cropB = extractFaceCrop(img, lm);
-
-    showLoader('COMPUTING NEURAL EMBEDDING B...', 'Running ResNet-based face encoder (128-D)');
-    state.descriptorB = await getNNDescriptor(img);
-    hideLoader();
-
-    const nnNote = state.descriptorB ? ' + NN ✓' : '';
-    setStatus('statusB','ok',`✓ ${lm.length} LM${nnNote}`);
-    document.getElementById('analyzeBtn').disabled = false;
-    document.getElementById('step2hint').textContent = 'Ready — click Run Analysis';
-    toast('Comparison face processed!');
-  } catch(e) { hideLoader(); setStatus('statusB','error','ERROR'); toast('Detection failed','error'); console.error(e); }
-});
-
-// ═══════════════════════════════════════════════════════════
-// CAMERA
-// ═══════════════════════════════════════════════════════════
-function setCompareSource(src) {
-  state.compareSource = src;
-  document.getElementById('srcPhoto').classList.toggle('active', src === 'photo');
-  document.getElementById('srcCamera').classList.toggle('active', src === 'camera');
-  document.getElementById('photoUploadWrap').style.display = src === 'photo' ? 'block' : 'none';
-  document.getElementById('liveSlot').classList.toggle('visible', src === 'camera');
-  if (src === 'camera') startCamera(); else stopCamera();
-}
-
-async function startCamera() {
-  try {
-    state.stream = await navigator.mediaDevices.getUserMedia({ video: { width:1280, height:720 }, audio:false });
-    document.getElementById('liveVideo').srcObject = state.stream;
-  } catch(e) { toast('Camera access denied','error'); setCompareSource('photo'); }
-}
-
-function stopCamera() {
-  if (state.stream) { state.stream.getTracks().forEach(t => t.stop()); state.stream = null; }
-}
-
-async function captureLiveFrame() {
-  const video = document.getElementById('liveVideo');
-  const c = document.createElement('canvas');
-  c.width = video.videoWidth; c.height = video.videoHeight;
-  const cx = c.getContext('2d');
-  cx.translate(c.width, 0); cx.scale(-1, 1); cx.drawImage(video, 0, 0);
-  const img = new Image(); img.src = c.toDataURL('image/jpeg', 0.92);
-  await new Promise(r => img.onload = r);
-
-  showLoader('DETECTING FACE B...', 'Running landmark detection');
-  try {
-    const lm = await detectFace(img);
-    if (!lm) { hideLoader(); toast('No face in frame — try again','error'); return; }
-    state.imageB = img; state.landmarksB = lm;
-    state.cropB = extractFaceCrop(img, lm);
-
-    showLoader('COMPUTING NEURAL EMBEDDING B...', 'ResNet encoder');
-    state.descriptorB = await getNNDescriptor(img);
-    hideLoader();
-    stopCamera();
-
-    document.getElementById('liveSlot').classList.remove('visible');
-    const prevB = document.getElementById('previewB');
-    prevB.width = img.naturalWidth; prevB.height = img.naturalHeight;
-    prevB.getContext('2d').drawImage(img, 0, 0);
-    prevB.classList.add('visible');
-    document.getElementById('slotB').classList.add('has-image');
-    document.getElementById('photoUploadWrap').style.display = 'block';
-    document.getElementById('srcPhoto').classList.add('active');
-    document.getElementById('srcCamera').classList.remove('active');
-    setStatus('statusB','ok',`✓ ${lm.length} LM${state.descriptorB ? ' + NN ✓' : ''}`);
-    document.getElementById('analyzeBtn').disabled = false;
-    document.getElementById('step2hint').textContent = 'Frame captured — click Run Analysis';
-    toast('Face captured!');
-  } catch(e) { hideLoader(); toast('Detection failed','error'); }
-}
-
-// ═══════════════════════════════════════════════════════════
-// FACE CROP
-// ═══════════════════════════════════════════════════════════
-function extractFaceCrop(img, lm, padding = 0.25) {
-  const W = img.naturalWidth, H = img.naturalHeight;
-  const xs = lm.map(p => p.x * W), ys = lm.map(p => p.y * H);
-  const x0 = Math.min(...xs), x1 = Math.max(...xs);
-  const y0 = Math.min(...ys), y1 = Math.max(...ys);
-  const pw = (x1-x0)*padding, ph = (y1-y0)*padding;
-  const cx = Math.max(0, x0-pw), cy = Math.max(0, y0-ph);
-  const cw = Math.min(W-cx, x1-x0+2*pw), ch = Math.min(H-cy, y1-y0+2*ph);
-  const c = document.createElement('canvas'); c.width = 128; c.height = 128;
-  c.getContext('2d').drawImage(img, cx, cy, cw, ch, 0, 0, 128, 128);
-  return c;
-}
-
-// ═══════════════════════════════════════════════════════════
-// ANALYSIS METHODS — Classical (7) + Neural (1)
-// ═══════════════════════════════════════════════════════════
-
-// METHOD 1 — Procrustes
-function procrustesAnalysis(lmA, lmB) {
-  const sample = (lm, n=100) => {
-    const step = Math.floor(lm.length/n);
-    return Array.from({length:n}, (_,i) => [lm[i*step].x, lm[i*step].y]);
-  };
-  const ptsA = sample(lmA), ptsB = sample(lmB);
-  const centroid = pts => [pts.reduce((s,p)=>s+p[0],0)/pts.length, pts.reduce((s,p)=>s+p[1],0)/pts.length];
-  const center   = (pts, c) => pts.map(p=>[p[0]-c[0], p[1]-c[1]]);
-  const scale    = pts => { const s=Math.sqrt(pts.reduce((a,p)=>a+p[0]**2+p[1]**2,0)/pts.length); return pts.map(p=>[p[0]/s,p[1]/s]); };
-  const sA = scale(center(ptsA, centroid(ptsA))), sB = scale(center(ptsB, centroid(ptsB)));
-  const rms = Math.sqrt(sA.reduce((sum,p,i) => sum+(p[0]-sB[i][0])**2+(p[1]-sB[i][1])**2, 0)/sA.length);
-  return { score: Math.max(0, 1 - rms * 8), rms: rms.toFixed(4), points: sA.length };
-}
-
-// METHOD 2 — Facial Ratios
-const LM = {
-  leftEye:33, rightEye:263, noseTip:1, noseBase:94, leftMouth:61, rightMouth:291,
-  chin:152, forehead:10, leftCheek:234, rightCheek:454, leftBrow:70, rightBrow:300,
-  leftEyeInner:133, rightEyeInner:362, upperLip:0, lowerLip:17, leftJaw:172, rightJaw:397,
-  noseLeft:129, noseRight:358,
-};
-function faceRatioAnalysis(lmA, lmB) {
-  const pt   = (lm, k) => ({ x: lm[LM[k]].x, y: lm[LM[k]].y });
-  const dist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
-  const ratios = lm => {
-    const eyeW=dist(pt(lm,'leftEye'),pt(lm,'rightEye')), faceH=dist(pt(lm,'forehead'),pt(lm,'chin'));
-    const faceW=dist(pt(lm,'leftCheek'),pt(lm,'rightCheek')), noseW=dist(pt(lm,'noseLeft'),pt(lm,'noseRight'));
-    const mouthW=dist(pt(lm,'leftMouth'),pt(lm,'rightMouth')), noseH=dist(pt(lm,'noseTip'),pt(lm,'noseBase'));
-    const eyeMid={x:(pt(lm,'leftEye').x+pt(lm,'rightEye').x)/2,y:(pt(lm,'leftEye').y+pt(lm,'rightEye').y)/2};
-    const mouthMid={x:(pt(lm,'leftMouth').x+pt(lm,'rightMouth').x)/2,y:(pt(lm,'leftMouth').y+pt(lm,'rightMouth').y)/2};
-    const jawW=dist(pt(lm,'leftJaw'),pt(lm,'rightJaw'));
-    return [eyeW/faceW, faceH/faceW, noseW/eyeW, mouthW/eyeW, noseH/faceH,
-            dist(pt(lm,'noseTip'),eyeMid)/faceH, dist(pt(lm,'noseTip'),mouthMid)/faceH,
-            dist(mouthMid,pt(lm,'chin'))/faceH, jawW/faceW, noseW/mouthW];
-  };
-  const rA=ratios(lmA), rB=ratios(lmB);
-  const diffs=rA.map((v,i)=>Math.abs(v-rB[i]));
-  const meanDiff=diffs.reduce((a,b)=>a+b,0)/diffs.length;
-  return { score: Math.max(0, 1-meanDiff*6), meanDiff: meanDiff.toFixed(4) };
-}
-
-// METHOD 3 — LBP
-function lbpHistogram(canvas) {
-  const W=64, H=64, gray=getGrayscale(canvas,W,H), hist=new Float32Array(256).fill(0);
-  const nb=[[-1,-1],[-1,0],[-1,1],[0,1],[1,1],[1,0],[1,-1],[0,-1]];
-  for(let y=1;y<H-1;y++) for(let x=1;x<W-1;x++){
-    const c=gray[y*W+x]; let code=0;
-    nb.forEach(([dy,dx],i)=>{ if(gray[(y+dy)*W+(x+dx)]>=c) code|=(1<<i); });
-    hist[code]++;
+async function addRefPhotos(files){
+  for(const f of Array.from(files).slice(0,6-refPhotos.length)){
+    if(!f.type.startsWith('image/')){ toast('Image files only','error'); continue; }
+    if(refPhotos.length>=6){ toast('Max 6 reference photos','error'); break; }
+    const dataUrl = await resizeDataUrl(await readFile(f));
+    const id = Date.now()+Math.random();
+    refPhotos.push({id, dataUrl});
+    $('refEmpty').style.display='none';
+    const card=document.createElement('div'); card.className='ref-card'; card.id='rcard-'+id;
+    const img=document.createElement('img'); img.src=dataUrl;
+    const rmv=document.createElement('div'); rmv.className='rmv'; rmv.textContent='✕'; rmv.onclick=()=>removeRef(id);
+    const num=document.createElement('div'); num.className='ref-num'; num.textContent='#'+refPhotos.length;
+    card.append(img,rmv,num); $('refGrid').appendChild(card);
   }
-  const sum=hist.reduce((a,b)=>a+b,0); return hist.map(v=>v/sum);
-}
-function lbpCompare(cA,cB) {
-  const hA=lbpHistogram(cA), hB=lbpHistogram(cB);
-  let chi=0;
-  for(let i=0;i<256;i++){ const s=hA[i]+hB[i]; if(s>0) chi+=(hA[i]-hB[i])**2/s; }
-  return { score: Math.max(0,1-chi*3), chiSq: chi.toFixed(4) };
+  updateRefUI(); updateRunBtn();
 }
 
-// METHOD 4 — HOG
-function hogDescriptor(canvas) {
-  const W=64,H=64,cs=8,nb=9, gray=getGrayscale(canvas,W,H), hog=[];
-  for(let cy=0;cy<H/cs;cy++) for(let cx=0;cx<W/cs;cx++){
-    const hist=new Float32Array(nb).fill(0);
-    for(let y=cy*cs;y<(cy+1)*cs;y++) for(let x=cx*cs;x<(cx+1)*cs;x++){
-      const gx=x>0&&x<W-1?gray[y*W+x+1]-gray[y*W+x-1]:0;
-      const gy=y>0&&y<H-1?gray[(y+1)*W+x]-gray[(y-1)*W+x]:0;
-      const mag=Math.hypot(gx,gy), ang=((Math.atan2(gy,gx)*180/Math.PI)+180)%180;
-      hist[Math.floor(ang/(180/nb))%nb]+=mag;
+function removeRef(id){
+  refPhotos=refPhotos.filter(r=>r.id!=id);
+  document.querySelector('#rcard-'+id)?.remove();
+  if(!refPhotos.length) $('refEmpty').style.display='block';
+  updateRefUI(); updateRunBtn();
+}
+
+function updateRefUI(){
+  const n=refPhotos.length;
+  $('refCountBadge').textContent=n+' / 6';
+  if(n>0){
+    $('refStats').style.display='flex';
+    $('sPhotoCount').textContent=n;
+    $('sTotalSize').textContent=fmtBytes(refPhotos.reduce((s,r)=>s+(r.dataUrl.length*.75),0));
+  } else $('refStats').style.display='none';
+}
+
+async function setCompPhoto(file){
+  if(!file||!file.type.startsWith('image/')){ toast('Image files only','error'); return; }
+  compPhoto={ dataUrl: await resizeDataUrl(await readFile(file)) };
+  $('compImg').src=compPhoto.dataUrl;
+  $('compPreviewWrap').style.display='block';
+  toast('Comparison image loaded','success',2000);
+  updateRunBtn();
+}
+
+function switchCompTab(name,btn){
+  document.querySelectorAll('.comp-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.comp-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active'); $('panel-'+name).classList.add('active');
+}
+
+async function startCamera(){
+  try{
+    liveStream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
+    const v=$('videoEl'); v.srcObject=liveStream; await new Promise(r=>v.onloadedmetadata=r); v.play();
+    $('vidPlaceholder').style.display='none';
+    $('startCamBtn').style.display='none';
+    ['stopCamBtn','snapBtn','liveBtn'].forEach(id=>$(id).style.display='inline-flex');
+    toast('Camera started','success');
+  }catch(e){ toast('Camera: '+e.message,'error'); }
+}
+
+function stopCamera(){
+  if(liveStream){ liveStream.getTracks().forEach(t=>t.stop()); liveStream=null; }
+  if(liveTimer){ clearInterval(liveTimer); liveTimer=null; liveActive=false; }
+  $('videoEl').srcObject=null; $('vidPlaceholder').style.display='flex';
+  $('startCamBtn').style.display='inline-flex';
+  ['stopCamBtn','snapBtn','liveBtn'].forEach(id=>$(id).style.display='none');
+  $('liveBtn').textContent='⚡ Live Analysis: OFF';
+}
+
+function takeSnapshot(){
+  const v=$('videoEl'), c=$('snapCanvas');
+  c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
+  compPhoto={ dataUrl: c.toDataURL('image/jpeg',.9) };
+  $('snapPreview').style.display='block';
+  toast('Snapshot captured','success',2000); updateRunBtn();
+}
+
+function toggleLive(){
+  if(!liveStream){ toast('Start camera first','error'); return; }
+  liveActive=!liveActive;
+  $('liveBtn').textContent='⚡ Live Analysis: '+(liveActive?'ON':'OFF');
+  if(liveActive){ toast('Live analysis ON — every 3s','info'); liveTimer=setInterval(runLive,3000); }
+  else{ clearInterval(liveTimer); liveTimer=null; }
+}
+
+async function runLive(){
+  if(!liveStream||!refPhotos.length) return;
+  const v=$('videoEl'), c=$('liveCanvas');
+  c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
+  compPhoto={ dataUrl: c.toDataURL('image/jpeg',.8) };
+  try{
+    const r=await callAPI(true);
+    if(r){
+      const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); ctx.drawImage(v,0,0);
+      const m=r.verdict==='MATCH', col=m?'#00ffb3':'#ff3d5a';
+      ctx.strokeStyle=col; ctx.lineWidth=3; ctx.strokeRect(8,8,c.width-16,c.height-16);
+      ctx.fillStyle=m?'rgba(0,255,179,.88)':'rgba(255,61,90,.88)'; ctx.fillRect(8,8,230,38);
+      ctx.fillStyle='#000'; ctx.font='bold 14px IBM Plex Mono';
+      ctx.fillText(`${r.verdict}  —  ${r.confidence}% confidence`,18,31);
     }
-    const norm=Math.sqrt(hist.reduce((a,b)=>a+b*b,0))+1e-6;
-    hist.forEach(v=>hog.push(v/norm));
-  }
-  return hog;
-}
-function hogCompare(cA,cB) {
-  const hA=hogDescriptor(cA), hB=hogDescriptor(cB);
-  let dot=0,nA=0,nB=0;
-  for(let i=0;i<hA.length;i++){dot+=hA[i]*hB[i];nA+=hA[i]**2;nB+=hB[i]**2;}
-  const cos=dot/(Math.sqrt(nA)*Math.sqrt(nB)+1e-8);
-  return { score: Math.max(0,cos), cosine: cos.toFixed(4), dims: hA.length };
+  }catch(e){ console.error(e); }
 }
 
-// METHOD 5 — pHash
-function pHash(canvas) {
-  const N=32, gray=getGrayscale(canvas,N,N), dct=new Float32Array(N*N);
-  for(let u=0;u<N;u++) for(let v=0;v<N;v++){
-    let sum=0;
-    const cu=u===0?1/Math.sqrt(2):1, cv=v===0?1/Math.sqrt(2):1;
-    for(let x=0;x<N;x++) for(let y=0;y<N;y++)
-      sum+=gray[x*N+y]*Math.cos((2*x+1)*u*Math.PI/(2*N))*Math.cos((2*y+1)*v*Math.PI/(2*N));
-    dct[u*N+v]=(2/N)*cu*cv*sum;
-  }
-  const vals=[];
-  for(let u=0;u<8;u++) for(let v=0;v<8;v++) if(u||v) vals.push(dct[u*N+v]);
-  vals.unshift(dct[0]);
-  const med=[...vals].sort((a,b)=>a-b)[Math.floor(vals.length/2)];
-  return vals.map(v=>v>med?1:0);
-}
-function pHashCompare(cA,cB) {
-  const hA=pHash(cA), hB=pHash(cB);
-  const h=hA.reduce((s,b,i)=>s+(b!==hB[i]?1:0),0);
-  return { score: 1-h/hA.length, hamming: h, bits: hA.length };
-}
-
-// METHOD 6 — SSIM
-function ssim(cA,cB) {
-  const W=32,H=32,gA=getGrayscale(cA,W,H),gB=getGrayscale(cB,W,H),n=W*H;
-  const muA=gA.reduce((a,b)=>a+b,0)/n, muB=gB.reduce((a,b)=>a+b,0)/n;
-  let sA=0,sB=0,sAB=0;
-  for(let i=0;i<n;i++){sA+=(gA[i]-muA)**2;sB+=(gB[i]-muB)**2;sAB+=(gA[i]-muA)*(gB[i]-muB);}
-  sA/=(n-1);sB/=(n-1);sAB/=(n-1);
-  const C1=0.01**2,C2=0.03**2;
-  const val=((2*muA*muB+C1)*(2*sAB+C2))/((muA**2+muB**2+C1)*(sA+sB+C2));
-  return { score: Math.max(0,(val+1)/2), raw: val.toFixed(4) };
-}
-
-// METHOD 7 — Color Histogram
-function colorHistogram(canvas) {
-  const W=64,H=64,bins=16;
-  const c=document.createElement('canvas');c.width=W;c.height=H;
-  c.getContext('2d').drawImage(canvas,0,0,W,H);
-  const d=c.getContext('2d').getImageData(0,0,W,H).data;
-  const hR=new Float32Array(bins),hG=new Float32Array(bins),hB=new Float32Array(bins);
-  for(let i=0;i<W*H;i++){
-    hR[Math.floor(d[i*4]/256*bins)]++;
-    hG[Math.floor(d[i*4+1]/256*bins)]++;
-    hB[Math.floor(d[i*4+2]/256*bins)]++;
-  }
-  const tot=W*H;
-  return [...hR.map(v=>v/tot),...hG.map(v=>v/tot),...hB.map(v=>v/tot)];
-}
-function colorCompare(cA,cB) {
-  const hA=colorHistogram(cA),hB=colorHistogram(cB);
-  let bc=0; for(let i=0;i<hA.length;i++) bc+=Math.sqrt(hA[i]*hB[i]);
-  return { score: bc, bc: bc.toFixed(4), bins: hA.length/3+'×3 channels' };
-}
-
-// METHOD 8 — Neural Face Embedding (face-api.js, 128-D)
-function neuralEmbeddingCompare(descA, descB) {
-  if (!descA || !descB) return null;
-  // Euclidean distance (standard for FaceNet-style embeddings)
-  let dist = 0;
-  for (let i = 0; i < descA.length; i++) dist += (descA[i] - descB[i]) ** 2;
-  dist = Math.sqrt(dist);
-  // face-api.js: dist < 0.6 = same person, > 0.6 = different
-  // Map to similarity score: 0=same, 2=very different
-  const sim = Math.max(0, 1 - dist / 1.0);
-  return {
-    score: sim,
-    euclidean: dist.toFixed(4),
-    dims: descA.length,
-    threshold: '0.6',
-    verdict: dist < 0.45 ? 'STRONG MATCH' : dist < 0.6 ? 'LIKELY MATCH' : dist < 0.8 ? 'UNCERTAIN' : 'UNLIKELY',
-  };
-}
-
-// ── Grayscale helper ──
-function getGrayscale(canvas, w, h) {
-  const c = document.createElement('canvas'); c.width=w; c.height=h;
-  c.getContext('2d').drawImage(canvas,0,0,w,h);
-  const d = c.getContext('2d').getImageData(0,0,w,h).data;
-  const g = new Float32Array(w*h);
-  for(let i=0;i<w*h;i++) g[i]=(0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2])/255;
-  return g;
-}
-
-// ═══════════════════════════════════════════════════════════
-// MAIN ANALYSIS RUNNER
-// ═══════════════════════════════════════════════════════════
-async function runAnalysis() {
-  if (!state.landmarksA || !state.landmarksB) { toast('Both faces required','error'); return; }
-  advanceStep(3);
-
-  const container = document.getElementById('resultsContainer');
-  container.innerHTML = '<div style="font-family:var(--mono);font-size:12px;color:var(--dim);padding:20px 0;text-align:center;letter-spacing:0.1em">RUNNING ANALYSIS...</div>';
-  await new Promise(r => setTimeout(r, 80));
-
-  // Classical methods
-  const m1 = procrustesAnalysis(state.landmarksA, state.landmarksB);
-  const m2 = faceRatioAnalysis(state.landmarksA, state.landmarksB);
-  const m3 = lbpCompare(state.cropA, state.cropB);
-  const m4 = hogCompare(state.cropA, state.cropB);
-  const m5 = pHashCompare(state.cropA, state.cropB);
-  const m6 = ssim(state.cropA, state.cropB);
-  const m7 = colorCompare(state.cropA, state.cropB);
-  // Neural method
-  const m8 = neuralEmbeddingCompare(state.descriptorA, state.descriptorB);
-
-  const hasNN = !!m8;
-
-  const classicalMethods = [
-    { name:'Procrustes Shape Analysis', abbr:'GEO', score:m1.score, weight:2.5,
-      desc:'Normalizes 468 landmarks (center + scale) then measures mean positional error. Captures facial geometry independent of image size.',
-      details:[['Points','100 sampled'],['RMS dist',m1.rms],['Weight','×2.5']], type:'classical' },
-    { name:'Facial Ratio Analysis', abbr:'RAT', score:m2.score, weight:2.0,
-      desc:'Computes 10 biometric ratios (eye span, jaw width, nose/mouth proportions). Scale-invariant forensic anthropometry.',
-      details:[['Ratios','10'],['Mean diff',m2.meanDiff],['Weight','×2.0']], type:'classical' },
-    { name:'LBP Texture Histogram', abbr:'LBP', score:m3.score, weight:1.5,
-      desc:'Local Binary Patterns encode micro-texture by comparing each pixel to 8 neighbors, building a 256-bin histogram.',
-      details:[['Bins','256'],['χ² dist',m3.chiSq],['Weight','×1.5']], type:'classical' },
-    { name:'HOG Descriptor', abbr:'HOG', score:m4.score, weight:1.5,
-      desc:'Histograms of Oriented Gradients capture edge direction and magnitude across 8×8 cells. Measures structural edge patterns.',
-      details:[['Dims',m4.dims],['Cosine',m4.cosine],['Weight','×1.5']], type:'classical' },
-    { name:'DCT Perceptual Hash', abbr:'DCT', score:m5.score, weight:1.0,
-      desc:'DCT on face crop → 64 low-frequency bits → Hamming distance. Robust to minor re-encoding and lighting shifts.',
-      details:[['Bits',m5.bits],['Hamming',m5.hamming],['Weight','×1.0']], type:'classical' },
-    { name:'SSIM Structural Similarity', abbr:'SSIM', score:m6.score, weight:0.75,
-      desc:'Compares luminance, contrast, and local structure of aligned face crops. Captures perceptual similarity.',
-      details:[['Raw SSIM',m6.raw],['Remapped',(m6.score*100).toFixed(1)+'%'],['Weight','×0.75']], type:'classical' },
-    { name:'Color Histogram Match', abbr:'CLR', score:m7.score, weight:0.5,
-      desc:'Bhattacharyya coefficient on RGB distributions. Soft signal — same person under similar lighting shares skin tone distributions.',
-      details:[['Channels',m7.bins],['BC',m7.bc],['Weight','×0.5']], type:'classical' },
-  ];
-
-  const neuralMethods = hasNN ? [
-    { name:'ResNet-34 Face Embedding', abbr:'CNN', score:m8.score, weight:4.0,
-      desc:'128-dimensional embedding from a ResNet-34-based CNN pretrained on thousands of faces (face-api.js / dlib model). Euclidean distance in embedding space. Threshold < 0.6 = same person.',
-      details:[['Embedding dims',m8.dims],['Euclidean dist',m8.euclidean],['NN verdict',m8.verdict],['Weight','×4.0 ★ highest']],
-      type:'neural', euclidean: parseFloat(m8.euclidean) }
-  ] : [];
-
-  const allMethods = [...classicalMethods, ...neuralMethods];
-  const totalWeight = allMethods.reduce((s,m)=>s+m.weight,0);
-  const weightedScore = allMethods.reduce((s,m)=>s+m.score*m.weight,0) / totalWeight;
-
-  container.innerHTML = '';
-
-  // ── Verdict ──
-  let verdictClass, verdictLabel, verdictExpl;
-  const pct = Math.round(weightedScore * 100);
-  if (pct >= 78)      { verdictClass='match';   verdictLabel='PROBABLE MATCH';   verdictExpl='Multiple methods — classical and neural — converge on strong similarity. Geometry, texture, structural features and embedding distance all suggest the same person.'; }
-  else if (pct >= 58) { verdictClass='likely';  verdictLabel='POSSIBLE MATCH';   verdictExpl='Methods show mixed similarity. May reflect differences in lighting, angle, expression, or age. Results are inconclusive.'; }
-  else if (pct >= 38) { verdictClass='unsure';  verdictLabel='UNCERTAIN';         verdictExpl='Scores are mixed across methods. May be different people, or images too different in pose/lighting for reliable comparison.'; }
-  else                { verdictClass='nomatch'; verdictLabel='UNLIKELY MATCH';   verdictExpl='Classical and neural analysis both find substantial differences. Likely different people, or images too distorted to compare.'; }
-
-  const verdictEl = document.createElement('div');
-  verdictEl.innerHTML = `
-    <div class="verdict-box ${verdictClass}">
-      <div class="verdict-score">${pct}%</div>
-      <div class="verdict-label">${verdictLabel}</div>
-      <div class="verdict-explanation">${verdictExpl}</div>
-      <div style="margin-top:16px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;align-items:center">
-        ${allMethods.map(m=>`
-          <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.08em;display:flex;align-items:center;gap:4px;">
-            ${m.type==='neural' ? '<span style="color:var(--purple);font-size:8px">⬡</span>' : ''}
-            <span style="color:var(--dim)">${m.abbr} </span>
-            <span style="color:${m.type==='neural' ? 'var(--purple)' : scoreColor(m.score)}">${Math.round(m.score*100)}%</span>
-          </div>`).join('')}
-      </div>
-      ${hasNN ? `<div style="margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--purple);letter-spacing:0.1em;opacity:0.8">⬡ Neural embedding distance: ${m8.euclidean} (threshold 0.6)</div>` : ''}
-    </div>
-    <div class="verdict-disclaimer">
-      ⚠ EDUCATIONAL TOOL — Classical methods + CNN embedding do not constitute identity verification. Scores above 70% are suggestive, not conclusive. Not suitable for any real-world identity decisions.
-      ${!hasNN ? '<br>ℹ Neural network models could not be loaded (network issue). Results shown are classical-only.' : ''}
-    </div>`;
-  container.appendChild(verdictEl);
-
-  // ── Face previews ──
-  const prevRow = document.createElement('div');
-  prevRow.className = 'face-previews';
-  prevRow.innerHTML = '<div class="face-preview-box"><div class="face-preview-label">REFERENCE — A</div></div><div class="face-preview-box"><div class="face-preview-label">COMPARISON — B</div></div>';
-  prevRow.children[0].appendChild(makeLandmarkCanvas(state.imageA, state.landmarksA, 'a'));
-  prevRow.children[1].appendChild(makeLandmarkCanvas(state.imageB, state.landmarksB, 'b'));
-  container.appendChild(prevRow);
-
-  // ── Overview bar chart ──
-  const progPanel = document.createElement('div');
-  progPanel.className = 'panel';
-  progPanel.innerHTML = `<div class="panel-title">Score Overview — All Methods</div>
-    ${allMethods.map(m=>`
-      <div style="margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:0.08em;margin-bottom:4px;">
-          <span style="color:${m.type==='neural'?'var(--purple)':'var(--text2)'}">
-            ${m.type==='neural'?'⬡ ':''} ${m.name}
-          </span>
-          <span style="color:${m.type==='neural'?'var(--purple)':scoreColor(m.score)}">
-            ${Math.round(m.score*100)}%  <span style="color:var(--dim)">×${m.weight}</span>
-          </span>
-        </div>
-        <div class="progress-wrap" style="margin:0">
-          <div class="progress-bar" style="width:${m.score*100}%;background:${m.type==='neural'?'var(--purple)':scoreColor(m.score)}"></div>
-        </div>
-      </div>`).join('')}`;
-  container.appendChild(progPanel);
-
-  // ── Method cards ──
-  const cardsSection = document.createElement('div');
-  cardsSection.innerHTML = `
-    <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:10px;">
-      Classical Methods <span style="flex:1;height:1px;background:var(--border);display:block"></span>
-    </div>`;
-  const classGrid = document.createElement('div'); classGrid.className = 'results-grid';
-  classicalMethods.forEach(m => {
-    const tier = m.score >= 0.7 ? 'high' : m.score >= 0.45 ? 'medium' : 'low';
-    const card = document.createElement('div');
-    card.className = `method-card ${tier}`;
-    card.innerHTML = `
-      <div class="method-name">${m.abbr} — ${m.name}</div>
-      <div class="method-desc">${m.desc}</div>
-      <div class="score-row">
-        <div class="score-bar-wrap"><div class="score-bar" style="width:${m.score*100}%;background:${scoreColor(m.score)}"></div></div>
-        <div class="score-val" style="color:${scoreColor(m.score)}">${Math.round(m.score*100)}%</div>
-      </div>
-      <table class="metric-table">${m.details.map(([k,v])=>`<tr><td>${k}</td><td class="val">${v}</td></tr>`).join('')}</table>`;
-    classGrid.appendChild(card);
+async function callAPI(quick=false){
+  const content=[];
+  refPhotos.forEach((p,i)=>{
+    content.push({type:'text',text:`Reference photo ${i+1} of ${refPhotos.length} (the REFERENCE person to identify):`});
+    content.push({type:'image',source:{type:'base64',media_type:mime(p.dataUrl),data:b64(p.dataUrl)}});
   });
-  cardsSection.appendChild(classGrid);
-  container.appendChild(cardsSection);
+  content.push({type:'text',text:'COMPARISON photo — is this the SAME PERSON as the references above?'});
+  content.push({type:'image',source:{type:'base64',media_type:mime(compPhoto.dataUrl),data:b64(compPhoto.dataUrl)}});
 
-  // ── Neural method card (if available) ──
-  if (hasNN) {
-    const nnSection = document.createElement('div');
-    nnSection.style.marginTop = '16px';
-    nnSection.innerHTML = `
-      <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--purple);margin-bottom:12px;display:flex;align-items:center;gap:10px;">
-        ⬡ Neural Network Method <span style="flex:1;height:1px;background:rgba(167,139,250,0.2);display:block"></span>
-      </div>`;
-    const nnCard = document.createElement('div');
-    const nnTier = m8.score >= 0.7 ? 'neural-high' : 'neural';
-    nnCard.className = `method-card ${nnTier}`;
+  const sys = quick
+    ? 'You are a facial recognition AI. Respond ONLY with JSON: {"verdict":"MATCH" or "NO_MATCH","confidence":0-100}'
+    : `You are an expert facial recognition AI system. Compare the REFERENCE photos to the COMPARISON photo.
 
-    // Sample embedding dimensions for visualization
-    const sampleA = Array.from(state.descriptorA).slice(0, 20);
-    const sampleB = Array.from(state.descriptorB).slice(0, 20);
-    const maxVal = Math.max(...sampleA.map(Math.abs), ...sampleB.map(Math.abs));
+Analyze these features independently:
+- Overall face shape (jaw, cheekbones, cranial width, facial thirds)
+- Eyes (shape, size, spacing, lid morphology, corners)
+- Nose (bridge width, tip shape, nostril shape)
+- Mouth (lip fullness, width, philtrum)
+- Eyebrows (arch, thickness, spacing)
+- Ears (if visible)
+- Skin (tone, texture, markings)
+- Facial proportions (width/height, thirds ratio)
+- Overall holistic impression
 
-    nnCard.innerHTML = `
-      <div class="neural-badge">⬡ NEURAL NETWORK</div>
-      <div class="method-name">CNN — ResNet-34 Face Embedding</div>
-      <div class="method-desc">A deep convolutional neural network has processed each face through ~29 layers of convolutions and pooling, producing a 128-dimensional embedding vector. The Euclidean distance between the two embedding vectors is the most reliable comparison signal.</div>
-      <div class="score-row">
-        <div class="score-bar-wrap"><div class="score-bar" style="width:${m8.score*100}%;background:var(--purple)"></div></div>
-        <div class="score-val" style="color:var(--purple)">${Math.round(m8.score*100)}%</div>
-      </div>
-      <table class="metric-table">
-        ${neuralMethods[0].details.map(([k,v])=>`<tr><td>${k}</td><td class="val">${v}</td></tr>`).join('')}
-      </table>
-      <div style="margin-top:14px;">
-        <div style="font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">
-          Embedding Visualization — First 20 of 128 Dimensions
-        </div>
-        <div>
-          ${sampleA.map((v,i) => {
-            const vA = Math.abs(v)/maxVal*100, vB = Math.abs(sampleB[i])/maxVal*100;
-            const col = Math.abs(v - sampleB[i]) < 0.05 ? 'var(--green)' : 'var(--purple)';
-            return `<div class="emb-bar-row">
-              <div class="emb-label">d${String(i).padStart(2,'0')}</div>
-              <div class="emb-bar-track"><div class="emb-bar-fill" style="width:${vA}%;background:var(--accent);opacity:0.7"></div></div>
-              <div class="emb-bar-track" style="margin-left:3px"><div class="emb-bar-fill" style="width:${vB}%;background:${col};opacity:0.7"></div></div>
-            </div>`;
-          }).join('')}
-          <div style="display:flex;gap:16px;margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--dim)">
-            <span>■ <span style="color:var(--accent)">Person A</span></span>
-            <span>■ <span style="color:var(--purple)">Person B</span></span>
-            <span>■ <span style="color:var(--green)">Match (diff&lt;0.05)</span></span>
-          </div>
-        </div>
-      </div>`;
-    nnSection.appendChild(nnCard);
-    container.appendChild(nnSection);
-  }
+Account for differences in: lighting, angle, expression, image quality, makeup, facial hair, glasses.
 
-  // ── Neural Network Educational Explainer ──
-  container.appendChild(buildNNExplainer(hasNN));
-}
+Respond ONLY with this exact JSON (no markdown fences, no text outside JSON):
+{
+  "verdict": "MATCH" | "NO_MATCH" | "UNCERTAIN",
+  "confidence": <integer 0-100>,
+  "reasoning": "<2-3 sentence summary>",
+  "features": [
+    {"name":"<feature>","analysis":"<observation>","match_level":"HIGH"|"MEDIUM"|"LOW"|"N/A","confidence":<0-100>,"icon":"<emoji>"}
+  ],
+  "supporting_evidence": ["<string>","<string>"],
+  "contradicting_evidence": ["<string>"],
+  "quality_notes": "<lighting/quality/angle observations>",
+  "technical": {"num_references":${refPhotos.length},"method":"Claude Vision Multimodal","descriptor_size":"Multimodal (internal)","distance_metric":"Semantic similarity","threshold":"60% confidence","processing_time_ms":null}
+}`;
 
-// ═══════════════════════════════════════════════════════════
-// EDUCATIONAL EXPLAINER BUILDER
-// ═══════════════════════════════════════════════════════════
-function buildNNExplainer(nnWasUsed) {
-  const wrap = document.createElement('div');
-  wrap.className = 'nn-explainer';
-  wrap.style.marginTop = '20px';
-
-  wrap.innerHTML = `
-    <div class="nn-explainer-header" onclick="toggleExplainer(this)">
-      <div class="nn-explainer-title">
-        ⬡ How Neural Networks Recognize Faces — Educational Guide
-      </div>
-      <div class="nn-explainer-toggle">▼ EXPAND</div>
-    </div>
-    <div class="nn-explainer-body">
-
-      <div class="info-box purple" style="margin-bottom:16px;">
-        <strong>The Big Idea:</strong> Classical methods extract features that <em>humans designed</em> — ratios, textures, gradients. A neural network <em>learns its own features</em> from data, discovering patterns no human would think to program. This is why deep learning dominates modern face recognition.
-      </div>
-
-      <!-- CNN Architecture Diagram -->
-      <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--purple);margin-bottom:10px;">CNN Architecture — From Pixels to Identity</div>
-      <div class="cnn-diagram">
-        <svg class="cnn-svg" viewBox="0 0 780 180" xmlns="http://www.w3.org/2000/svg" style="display:block;height:180px;">
-          <defs>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-
-          <!-- Input Face -->
-          <rect x="10" y="40" width="60" height="80" rx="2" fill="#0f1120" stroke="#4f8eff" stroke-width="1.2"/>
-          <rect x="15" y="45" width="50" height="70" rx="1" fill="#131628" stroke="#252a45" stroke-width="0.5"/>
-          <!-- Simple face icon -->
-          <circle cx="40" cy="75" r="22" fill="none" stroke="#4f8eff" stroke-width="0.8" opacity="0.4"/>
-          <circle cx="33" cy="70" r="3.5" fill="#4f8eff" opacity="0.5"/>
-          <circle cx="47" cy="70" r="3.5" fill="#4f8eff" opacity="0.5"/>
-          <path d="M33 82 Q40 88 47 82" stroke="#4f8eff" stroke-width="1" fill="none" opacity="0.5"/>
-          <text x="40" y="135" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#3a4560">INPUT</text>
-          <text x="40" y="144" text-anchor="middle" font-family="IBM Plex Mono" font-size="7" fill="#3a4560">224×224</text>
-
-          <!-- Arrow -->
-          <line x1="72" y1="80" x2="88" y2="80" stroke="#252a45" stroke-width="1.2"/>
-          <polygon points="86,76 92,80 86,84" fill="#252a45"/>
-
-          <!-- Conv Block 1 (3 channels shown as stacked) -->
-          <rect x="92"  y="25" width="55" height="95" rx="2" fill="#0f1120" stroke="#a78bfa" stroke-width="1.2"/>
-          <rect x="98"  y="30" width="43" height="80" rx="1" fill="rgba(167,139,250,0.06)" stroke="#a78bfa" stroke-width="0.5"/>
-          <rect x="103" y="35" width="33" height="70" rx="1" fill="rgba(167,139,250,0.1)" stroke="#a78bfa" stroke-width="0.8"/>
-          <!-- Feature map grid hint -->
-          <line x1="112" y1="35" x2="112" y2="105" stroke="#a78bfa" stroke-width="0.3" opacity="0.4"/>
-          <line x1="121" y1="35" x2="121" y2="105" stroke="#a78bfa" stroke-width="0.3" opacity="0.4"/>
-          <line x1="130" y1="35" x2="130" y2="105" stroke="#a78bfa" stroke-width="0.3" opacity="0.4"/>
-          <line x1="103" y1="52" x2="136" y2="52" stroke="#a78bfa" stroke-width="0.3" opacity="0.4"/>
-          <line x1="103" y1="69" x2="136" y2="69" stroke="#a78bfa" stroke-width="0.3" opacity="0.4"/>
-          <line x1="103" y1="86" x2="136" y2="86" stroke="#a78bfa" stroke-width="0.3" opacity="0.4"/>
-          <text x="119" y="135" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#a78bfa">CONV 1</text>
-          <text x="119" y="144" text-anchor="middle" font-family="IBM Plex Mono" font-size="7" fill="#3a4560">64 filters</text>
-
-          <!-- Arrow -->
-          <line x1="149" y1="80" x2="163" y2="80" stroke="#252a45" stroke-width="1.2"/>
-          <polygon points="161,76 167,80 161,84" fill="#252a45"/>
-
-          <!-- Pool + Conv 2 -->
-          <rect x="167" y="35" width="48" height="75" rx="2" fill="#0f1120" stroke="#a78bfa" stroke-width="1.2"/>
-          <rect x="172" y="40" width="38" height="65" rx="1" fill="rgba(167,139,250,0.06)" stroke="#a78bfa" stroke-width="0.5"/>
-          <rect x="177" y="45" width="28" height="55" rx="1" fill="rgba(167,139,250,0.12)" stroke="#a78bfa" stroke-width="0.8"/>
-          <line x1="186" y1="45" x2="186" y2="100" stroke="#a78bfa" stroke-width="0.3" opacity="0.4"/>
-          <line x1="195" y1="45" x2="195" y2="100" stroke="#a78bfa" stroke-width="0.3" opacity="0.4"/>
-          <line x1="177" y1="63" x2="205" y2="63" stroke="#a78bfa" stroke-width="0.3" opacity="0.4"/>
-          <line x1="177" y1="82" x2="205" y2="82" stroke="#a78bfa" stroke-width="0.3" opacity="0.4"/>
-          <text x="191" y="135" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#a78bfa">CONV 2</text>
-          <text x="191" y="144" text-anchor="middle" font-family="IBM Plex Mono" font-size="7" fill="#3a4560">128 filters</text>
-
-          <!-- Arrow -->
-          <line x1="217" y1="80" x2="231" y2="80" stroke="#252a45" stroke-width="1.2"/>
-          <polygon points="229,76 235,80 229,84" fill="#252a45"/>
-
-          <!-- Pool -->
-          <rect x="235" y="50" width="38" height="54" rx="2" fill="#0f1120" stroke="#4f8eff" stroke-width="1.2"/>
-          <rect x="240" y="55" width="28" height="44" rx="1" fill="rgba(79,142,255,0.08)" stroke="#4f8eff" stroke-width="0.5"/>
-          <!-- 2x2 pooling hint -->
-          <line x1="254" y1="55" x2="254" y2="99" stroke="#4f8eff" stroke-width="0.6" opacity="0.5"/>
-          <line x1="240" y1="77" x2="268" y2="77" stroke="#4f8eff" stroke-width="0.6" opacity="0.5"/>
-          <text x="254" y="135" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#4f8eff">POOL</text>
-          <text x="254" y="144" text-anchor="middle" font-family="IBM Plex Mono" font-size="7" fill="#3a4560">max 2×2</text>
-
-          <!-- Arrow -->
-          <line x1="275" y1="80" x2="289" y2="80" stroke="#252a45" stroke-width="1.2"/>
-          <polygon points="287,76 293,80 287,84" fill="#252a45"/>
-
-          <!-- Deep Conv Block -->
-          <rect x="293" y="55" width="38" height="48" rx="2" fill="#0f1120" stroke="#a78bfa" stroke-width="1.2"/>
-          <rect x="298" y="60" width="28" height="38" rx="1" fill="rgba(167,139,250,0.12)" stroke="#a78bfa" stroke-width="0.8"/>
-          <!-- residual hint lines -->
-          <path d="M 293 70 Q 283 70 283 79 Q 283 88 293 88" stroke="#a78bfa" stroke-width="0.7" fill="none" opacity="0.5" stroke-dasharray="2,2"/>
-          <text x="312" y="135" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#a78bfa">RES BLKS</text>
-          <text x="312" y="144" text-anchor="middle" font-family="IBM Plex Mono" font-size="7" fill="#3a4560">256 filters</text>
-
-          <!-- Arrow -->
-          <line x1="333" y1="80" x2="347" y2="80" stroke="#252a45" stroke-width="1.2"/>
-          <polygon points="345,76 351,80 345,84" fill="#252a45"/>
-
-          <!-- ReLU -->
-          <rect x="351" y="60" width="34" height="40" rx="2" fill="#0f1120" stroke="#ff7c3a" stroke-width="1.2"/>
-          <!-- ReLU curve -->
-          <polyline points="356,92 362,92 372,68" stroke="#ff7c3a" stroke-width="1.5" fill="none"/>
-          <text x="368" y="135" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#ff7c3a">ReLU</text>
-          <text x="368" y="144" text-anchor="middle" font-family="IBM Plex Mono" font-size="7" fill="#3a4560">activation</text>
-
-          <!-- Arrow -->
-          <line x1="387" y1="80" x2="401" y2="80" stroke="#252a45" stroke-width="1.2"/>
-          <polygon points="399,76 405,80 399,84" fill="#252a45"/>
-
-          <!-- Global avg pool → flatten -->
-          <rect x="405" y="62" width="30" height="36" rx="2" fill="#0f1120" stroke="#4f8eff" stroke-width="1.2"/>
-          <text x="420" y="84" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#4f8eff">GAP</text>
-          <text x="420" y="135" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#4f8eff">AVG POOL</text>
-          <text x="420" y="144" text-anchor="middle" font-family="IBM Plex Mono" font-size="7" fill="#3a4560">global</text>
-
-          <!-- Arrow -->
-          <line x1="437" y1="80" x2="451" y2="80" stroke="#252a45" stroke-width="1.2"/>
-          <polygon points="449,76 455,80 449,84" fill="#252a45"/>
-
-          <!-- FC layers — represented as vertical bars -->
-          <g transform="translate(455, 40)">
-            ${Array.from({length:16}, (_,i) => `<rect x="${i*4}" y="${5 + Math.abs(i-8)*2}" width="3" height="${70 - Math.abs(i-8)*4}" rx="0" fill="rgba(46,204,138,0.5)" stroke="#2ecc8a" stroke-width="0.3"/>`).join('')}
-          </g>
-          <text x="487" y="135" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#2ecc8a">FC LAYER</text>
-          <text x="487" y="144" text-anchor="middle" font-family="IBM Plex Mono" font-size="7" fill="#3a4560">512 units</text>
-
-          <!-- Arrow -->
-          <line x1="521" y1="80" x2="535" y2="80" stroke="#252a45" stroke-width="1.2"/>
-          <polygon points="533,76 539,80 533,84" fill="#252a45"/>
-
-          <!-- 128-D Embedding -->
-          <g transform="translate(539, 30)">
-            ${Array.from({length:128}, (_,i) => {
-              const h = 4 + Math.random() * 110;
-              const y = (120 - h) / 2;
-              const col = i < 64 ? '#a78bfa' : '#4f8eff';
-              return `<rect x="${i * 1.6}" y="${y}" width="1.3" height="${h}" rx="0" fill="${col}" opacity="0.7"/>`;
-            }).join('')}
-          </g>
-          <text x="641" y="135" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#a78bfa">EMBEDDING</text>
-          <text x="641" y="144" text-anchor="middle" font-family="IBM Plex Mono" font-size="7" fill="#3a4560">128-D vector</text>
-
-          <!-- Arrow -->
-          <line x1="746" y1="80" x2="756" y2="80" stroke="#252a45" stroke-width="1.2"/>
-          <polygon points="754,76 760,80 754,84" fill="#252a45"/>
-
-          <!-- Distance metric -->
-          <rect x="760" y="62" width="16" height="36" rx="2" fill="rgba(245,200,66,0.1)" stroke="#f5c842" stroke-width="1.2"/>
-          <text x="768" y="84" text-anchor="middle" font-family="IBM Plex Mono" font-size="7" fill="#f5c842">d</text>
-          <text x="768" y="135" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#f5c842">DIST</text>
-        </svg>
-      </div>
-
-      <!-- Layer explainer cards -->
-      <div class="layer-cards">
-        <div class="layer-card conv">
-          <div class="layer-card-name">Convolutional Layer</div>
-          <div class="layer-card-desc">Slides small filters (e.g., 3×3) over the image to detect local patterns — edges, corners, curves. Early layers detect simple features; deep layers detect complex structures like eyes or jawlines.</div>
-        </div>
-        <div class="layer-card pool">
-          <div class="layer-card-name">Pooling Layer</div>
-          <div class="layer-card-desc">Reduces spatial dimensions (e.g., 112×112 → 56×56) by taking the maximum or average in each region. Makes detection position-invariant and reduces computation.</div>
-        </div>
-        <div class="layer-card relu">
-          <div class="layer-card-name">ReLU Activation</div>
-          <div class="layer-card-desc">Applies f(x) = max(0, x) to every value. This non-linearity lets the network learn complex, non-linear decision boundaries — without it, stacking layers would be useless.</div>
-        </div>
-        <div class="layer-card fc">
-          <div class="layer-card-name">Fully Connected Layer</div>
-          <div class="layer-card-desc">Every neuron connects to all previous neurons. These layers combine spatial features into a global face representation, ultimately producing the 128-D embedding vector.</div>
-        </div>
-        <div class="layer-card out">
-          <div class="layer-card-name">128-D Embedding</div>
-          <div class="layer-card-desc">The output: a 128-number vector where faces of the same person are &lt;0.6 apart (Euclidean). The network learns this metric from millions of labeled face pairs during training.</div>
-        </div>
-      </div>
-
-      <!-- Comparison table -->
-      <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text2);margin-top:20px;margin-bottom:10px;">
-        Classical vs Neural — Side-by-Side Comparison
-      </div>
-      <table class="compare-table">
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th class="classical">Classical (Methods 1–7)</th>
-            <th class="neural">Neural Network (Method 8)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Feature design</td>
-            <td class="lose">Hand-crafted by engineers</td>
-            <td class="win">Learned automatically from data</td>
-          </tr>
-          <tr>
-            <td>Training data needed</td>
-            <td class="win">None — rules-based</td>
-            <td class="lose">Thousands of labeled faces</td>
-          </tr>
-          <tr>
-            <td>Robustness to pose/lighting</td>
-            <td class="lose">Sensitive — ratios change with angle</td>
-            <td class="win">Much more robust</td>
-          </tr>
-          <tr>
-            <td>Interpretability</td>
-            <td class="win">High — each metric is human-readable</td>
-            <td class="lose">Low — 128 numbers are opaque</td>
-          </tr>
-          <tr>
-            <td>Accuracy on aligned faces</td>
-            <td>Good baseline</td>
-            <td class="win">State-of-the-art (>99% on LFW)</td>
-          </tr>
-          <tr>
-            <td>Privacy risk if leaked</td>
-            <td>Low — ratios only</td>
-            <td class="lose">Higher — embedding can reconstruct face</td>
-          </tr>
-          <tr>
-            <td>Computation required</td>
-            <td class="win">Low — runs in milliseconds</td>
-            <td class="lose">Higher — requires CNN forward pass</td>
-          </tr>
-          <tr>
-            <td>Works without GPU</td>
-            <td class="win">Yes</td>
-            <td>Yes (slower in-browser)</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- How training works -->
-      <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text2);margin-top:20px;margin-bottom:10px;">
-        How the Neural Network Learned
-      </div>
-      <div style="font-size:12px;color:var(--text);line-height:1.8;">
-        The face-api.js model used here is a ResNet-34 architecture trained with a <strong style="color:var(--purple)">metric learning</strong> objective called <strong style="color:var(--purple)">triplet loss</strong>. During training, the network saw triplets of images:
-        <br><br>
-        <span style="font-family:var(--mono);font-size:11px;color:var(--purple)">(Anchor, Same Person, Different Person)</span>
-        <br><br>
-        It was penalized whenever the "same person" image wasn't closer in embedding space than the "different person" image. After millions of such examples, the network learned a 128-D space where <strong style="color:var(--green)">faces of the same person cluster together</strong> and <strong style="color:var(--red)">faces of different people push apart</strong>.
-        <br><br>
-        This is fundamentally different from classical methods, which use no training data at all — they apply fixed mathematical rules invented by researchers. The neural network's advantage is that it can capture subtle, high-level patterns (like the 3D structure implied by shading) that are impossible to encode manually.
-      </div>
-
-    </div><!-- nn-explainer-body -->
-  `;
-  return wrap;
-}
-
-function toggleExplainer(header) {
-  const body   = header.nextElementSibling;
-  const toggle = header.querySelector('.nn-explainer-toggle');
-  const isOpen = body.classList.toggle('open');
-  toggle.textContent = isOpen ? '▲ COLLAPSE' : '▼ EXPAND';
-}
-
-// ═══════════════════════════════════════════════════════════
-// LANDMARK CANVAS
-// ═══════════════════════════════════════════════════════════
-function makeLandmarkCanvas(img, lm, side) {
-  const c = document.createElement('canvas');
-  const W = img.naturalWidth, H = img.naturalHeight;
-  c.width = W; c.height = H; c.className = 'face-preview-canvas';
-  const ctx = c.getContext('2d');
-  ctx.drawImage(img,0,0);
-
-  const CONTOURS = [
-    { pts:[10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109,10], color:side==='a'?'rgba(79,142,255,0.7)':'rgba(46,204,138,0.7)', w:1.5 },
-    { pts:[33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246,33], color:'rgba(255,255,255,0.5)', w:1 },
-    { pts:[362,382,381,380,374,373,390,249,263,466,388,387,386,385,384,398,362], color:'rgba(255,255,255,0.5)', w:1 },
-    { pts:[61,185,40,39,37,0,267,269,270,409,78,95,88,178,87,14,317,402,318,324,308,415,310,311,312,13,82,81,80,191,61], color:'rgba(232,68,90,0.6)', w:1 },
-  ];
-  CONTOURS.forEach(({pts,color,w}) => {
-    ctx.strokeStyle=color; ctx.lineWidth=w; ctx.beginPath();
-    pts.forEach((idx,i) => {
-      if(idx>=lm.length) return;
-      const p=lm[idx];
-      i===0 ? ctx.moveTo(p.x*W,p.y*H) : ctx.lineTo(p.x*W,p.y*H);
-    });
-    ctx.stroke();
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:[{role:'user',content}]})
   });
-  ctx.fillStyle = side==='a'?'rgba(79,142,255,0.8)':'rgba(46,204,138,0.8)';
-  lm.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x*W,p.y*H,1.2,0,Math.PI*2); ctx.fill(); });
-  return c;
+  if(!resp.ok) throw new Error(`API ${resp.status}: ${await resp.text()}`);
+  const data=await resp.json();
+  const text=data.content.map(b=>b.text||'').join('');
+  return JSON.parse(text.replace(/```json|```/g,'').trim());
 }
 
-// ═══════════════════════════════════════════════════════════
-// UI HELPERS
-// ═══════════════════════════════════════════════════════════
-function scoreColor(s) { return s>=0.7?'var(--green)':s>=0.45?'var(--yellow)':'var(--red)'; }
-function showLoader(t='',s='') {
-  document.getElementById('loaderText').textContent=t;
-  document.getElementById('loaderSub').textContent=s;
-  document.getElementById('globalLoader').classList.add('visible');
-}
-function hideLoader() { document.getElementById('globalLoader').classList.remove('visible'); }
-let toastTimer;
-function toast(msg,type='ok') {
-  const el=document.getElementById('toast');
-  el.textContent=msg; el.className='toast show'+(type==='error'?' error':'');
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+async function runAnalysis(){
+  if(!refPhotos.length||!compPhoto){ toast('Need reference + comparison','error'); return; }
+  $('runBtn').disabled=true;
+  $('resultsSection').style.display='block';
+  $('loadingState').style.display='block';
+  $('resultsContent').style.display='none';
+  $('resultsSection').scrollIntoView({behavior:'smooth',block:'start'});
+  const t0=Date.now();
+  try{
+    $('loadingDetail').textContent=`Sending ${refPhotos.length} reference + 1 comparison image...`;
+    const result=await callAPI(false);
+    result.technical.processing_time_ms=Date.now()-t0;
+    displayResults(result);
+    toast('Analysis complete!','success');
+  }catch(e){
+    console.error(e); toast('Analysis failed: '+e.message,'error',8000);
+    $('loadingState').style.display='none';
+  }finally{ $('runBtn').disabled=false; }
 }
 
-// ═══════════════════════════════════════════════════════════
-// BOOT — start NN model loading immediately in background
-// ═══════════════════════════════════════════════════════════
-initNeuralNet();
+function displayResults(r){
+  $('loadingState').style.display='none';
+  $('resultsContent').style.display='block';
+  const colorMap={MATCH:'match','NO_MATCH':'no-match',UNCERTAIN:'uncertain'};
+  const iconMap={MATCH:'✅','NO_MATCH':'❌',UNCERTAIN:'🤔'};
+  const labelMap={MATCH:'MATCH','NO_MATCH':'NO MATCH',UNCERTAIN:'UNCERTAIN'};
+  const vb=$('verdictBox'); vb.className='verdict-box '+(colorMap[r.verdict]||'uncertain');
+  $('verdictIcon').textContent=iconMap[r.verdict]||'🤔';
+  $('verdictLabel').textContent=labelMap[r.verdict]||r.verdict;
+  $('verdictSub').textContent=r.reasoning||'Analysis complete.';
+  const conf=Math.min(100,Math.max(0,r.confidence||0));
+  const col=conf>=75?'var(--green)':conf>=60?'var(--yellow)':'var(--red)';
+  $('gaugeFill').style.cssText=`width:${conf}%;background:linear-gradient(90deg,var(--red),var(--yellow) 60%,var(--green))`;
+  $('gaugeMarker').style.cssText=`left:${conf}%;background:${col};border:3px solid var(--bg)`;
+  $('summaryStats').innerHTML=`
+    <div class="stat-item"><div class="stat-val" style="color:${col}">${conf}%</div><div class="stat-lbl">Confidence</div></div>
+    <div class="stat-item"><div class="stat-val">${r.features?.length||0}</div><div class="stat-lbl">Features analyzed</div></div>
+    <div class="stat-item"><div class="stat-val">${refPhotos.length}</div><div class="stat-lbl">Ref photos</div></div>
+    <div class="stat-item"><div class="stat-val">${r.technical?.processing_time_ms||'—'}ms</div><div class="stat-lbl">Process time</div></div>`;
+  const sg=$('summaryGrid'); sg.innerHTML='';
+  [{label:'Verdict',val:`<span style="color:${col};font-family:'Syne',sans-serif;font-weight:700;font-size:1rem">${labelMap[r.verdict]||r.verdict}</span>`},
+   {label:'Quality notes',val:r.quality_notes||'—'},
+   {label:'Supporting evidence',val:(r.supporting_evidence||[]).map(e=>'• '+e).join('<br>')||'—'},
+   {label:'Contradicting evidence',val:(r.contradicting_evidence||[]).map(e=>'• '+e).join('<br>')||'None'}
+  ].forEach(it=>{ const el=document.createElement('div'); el.className='analysis-card'; el.innerHTML=`<div class="ac-label">${it.label}</div><div class="ac-value">${it.val}</div>`; sg.appendChild(el); });
+  const fl=$('featureList'); fl.innerHTML='';
+  (r.features||[]).forEach(f=>{
+    const mc=f.match_level==='HIGH'?'fs-high':f.match_level==='LOW'?'fs-low':'fs-mid';
+    const el=document.createElement('div'); el.className='feature-row';
+    el.innerHTML=`<div class="feature-icon">${f.icon||'🔍'}</div><div style="flex:1;min-width:0"><div class="feature-name">${f.name}</div><div class="feature-desc">${f.analysis}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0"><span class="feature-score ${mc}">${f.match_level}</span><span style="font-size:.6rem;color:var(--muted)">${f.confidence}%</span></div>`;
+    fl.appendChild(el);
+  });
+  const td=$('techData'); const tech=r.technical||{};
+  td.innerHTML=[{label:'Method',val:tech.method||'Claude Vision'},{label:'References',val:tech.num_references||refPhotos.length},{label:'Descriptor',val:tech.descriptor_size||'Multimodal'},{label:'Metric',val:tech.distance_metric||'Semantic'},{label:'Threshold',val:tech.threshold||'60%'},{label:'Time',val:(tech.processing_time_ms||'—')+'ms'}].map(it=>`<div class="info-box"><label>${it.label}</label><span>${it.val}</span></div>`).join('');
+  const cb=$('confBreakdown'); cb.innerHTML='';
+  (r.features||[]).forEach(f=>{
+    const c=Math.min(100,Math.max(0,f.confidence||0)), col2=c>=75?'var(--green)':c>=50?'var(--yellow)':'var(--red)';
+    const el=document.createElement('div'); el.style.cssText='margin-bottom:8px';
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:.63rem;color:var(--muted);margin-bottom:3px"><span>${f.icon||''} ${f.name}</span><span style="color:${col2}">${c}%</span></div><div class="conf-bar-track"><div class="conf-bar-fill" style="width:${c}%;background:${col2}"></div></div>`;
+    cb.appendChild(el);
+  });
+  $('rawOutput').textContent=JSON.stringify(r,null,2);
+}
+
+function resetResults(){ $('resultsSection').style.display='none'; }
+
+function switchResTab(name,btn){
+  document.querySelectorAll('.tabs-bar .tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active'); $('tab-'+name).classList.add('active');
+}
+
+function toggleAcc(head){
+  const body=head.nextElementSibling, was=head.classList.contains('open');
+  document.querySelectorAll('.acc-head.open').forEach(h=>{ h.classList.remove('open'); h.nextElementSibling.classList.remove('open'); });
+  if(!was){ head.classList.add('open'); body.classList.add('open'); }
+}
+
+window.addEventListener('load',()=>{ const h=document.querySelector('.acc-head'); if(h){ h.classList.add('open'); h.nextElementSibling.classList.add('open'); } });
 </script>
+
 </body>
 </html>
