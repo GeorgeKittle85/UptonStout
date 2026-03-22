@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FaceID Lab — Educational Facial Recognition</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
 <style>
 :root{
   --bg:#050c1a;--bg2:#0a1628;--bg3:#0f1e38;
@@ -19,162 +20,228 @@ html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;min-height:100vh;overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,200,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
 body::after{content:'';position:fixed;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.5;z-index:10}
-.wrap{max-width:1100px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
-header{padding:28px 0 22px;border-bottom:1px solid var(--border)}
-.header-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.wrap{max-width:1100px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+
+/* ── HEADER ── */
+header{padding:28px 0 22px;border-bottom:1px solid var(–border)}
+.hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
 .logo{display:flex;align-items:center;gap:14px}
-.logo-icon{width:46px;height:46px;border:2px solid var(--cyan);border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(0,200,255,.06);flex-shrink:0}
+.logo-icon{width:46px;height:46px;border:2px solid var(–cyan);border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(0,200,255,.06);flex-shrink:0}
 .logo-icon svg{width:26px;height:26px}
-.logo h1{font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:800;background:linear-gradient(120deg,var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.logo p{font-size:.62rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
-.header-badge{padding:5px 14px;background:rgba(0,200,255,.08);border:1px solid var(--border2);border-radius:20px;font-size:.65rem;color:var(--cyan)}
+.logo h1{font-family:‘Syne’,sans-serif;font-size:1.35rem;font-weight:800;background:linear-gradient(120deg,var(–cyan),var(–green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo p{font-size:.62rem;color:var(–muted);letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
+.status-pill{display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(–bg2);border:1px solid var(–border);border-radius:20px;font-size:.66rem}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(–dim);flex-shrink:0;transition:.3s}
+.sdot.loading{background:var(–yellow);animation:pulse 1s infinite}
+.sdot.ready{background:var(–green)}
+.sdot.error{background:var(–red)}
+
+/* ── SECTION ── */
 .section{margin:28px 0}
 .sec-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
-.sec-num{width:26px;height:26px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:.68rem;color:var(--cyan);flex-shrink:0}
-.sec-title{font-family:'Syne',sans-serif;font-size:.98rem;font-weight:700}
-.sec-sub{font-size:.63rem;color:var(--muted);margin-top:1px}
-.sec-line{flex:1;height:1px;background:var(--border)}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
-.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:8px;border:none;font-family:'IBM Plex Mono',monospace;font-size:.76rem;cursor:pointer;transition:.2s;font-weight:500}
-.btn-ghost{background:var(--bg3);color:var(--text);border:1px solid var(--border2)}
-.btn-ghost:hover{border-color:var(--cyan);color:var(--cyan)}
-.btn-green{background:rgba(0,255,179,.1);color:var(--green);border:1px solid rgba(0,255,179,.25)}
+.sec-num{width:26px;height:26px;border-radius:50%;background:var(–bg3);border:1px solid var(–border2);display:flex;align-items:center;justify-content:center;font-size:.68rem;color:var(–cyan);flex-shrink:0}
+.sec-title{font-family:‘Syne’,sans-serif;font-size:.98rem;font-weight:700}
+.sec-sub{font-size:.63rem;color:var(–muted);margin-top:1px}
+.sec-line{flex:1;height:1px;background:var(–border)}
+
+/* ── CARD ── */
+.card{background:var(–card);border:1px solid var(–border);border-radius:12px;padding:20px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:8px;border:none;font-family:‘IBM Plex Mono’,monospace;font-size:.76rem;cursor:pointer;transition:.2s;font-weight:500;line-height:1}
+.btn-primary{background:linear-gradient(135deg,var(–cyan),#0070ff);color:#000}
+.btn-primary:hover{opacity:.85;transform:translateY(-1px)}
+.btn-ghost{background:var(–bg3);color:var(–text);border:1px solid var(–border2)}
+.btn-ghost:hover{border-color:var(–cyan);color:var(–cyan)}
+.btn-green{background:rgba(0,255,179,.1);color:var(–green);border:1px solid rgba(0,255,179,.25)}
 .btn-green:hover{background:rgba(0,255,179,.18)}
+.btn-red{background:rgba(255,61,90,.1);color:var(–red);border:1px solid rgba(255,61,90,.25)}
 .btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important}
-.drop-zone{border:2px dashed var(--border2);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:.2s;background:rgba(0,200,255,.02)}
-.drop-zone:hover,.drop-zone.dragover{border-color:var(--cyan);background:rgba(0,200,255,.05)}
+
+/* ── PROGRESS ── */
+.prog-wrap{max-width:420px;margin:16px auto 0}
+.prog-row{display:flex;justify-content:space-between;font-size:.64rem;color:var(–muted);margin-bottom:5px}
+.prog-track{height:5px;background:var(–bg3);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(–cyan),var(–green));border-radius:3px;transition:width .4s}
+.prog-detail{font-size:.6rem;color:var(–dim);margin-top:6px;text-align:center}
+
+/* ── DROPZONE ── */
+.drop-zone{border:2px dashed var(–border2);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:.2s;background:rgba(0,200,255,.02)}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(–cyan);background:rgba(0,200,255,.05)}
 .dz-icon{font-size:2rem;margin-bottom:8px}
-.dz-label{font-size:.78rem;color:var(--text)}
-.dz-sub{font-size:.65rem;color:var(--muted);margin-top:6px}
+.dz-label{font-size:.78rem;color:var(–text)}
+.dz-sub{font-size:.65rem;color:var(–muted);margin-top:6px}
 input[type=file]{display:none}
-.ref-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:14px}
-.ref-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
-.ref-card img{width:100%;height:100%;object-fit:cover}
-.ref-card .rmv{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(5,12,26,.8);border:1px solid var(--border2);color:var(--muted);font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
-.ref-card .rmv:hover{background:var(--red);color:#fff;border-color:var(--red)}
-.ref-card .ref-num{position:absolute;bottom:5px;left:5px;padding:2px 6px;border-radius:4px;font-size:.58rem;background:rgba(0,200,255,.2);color:var(--cyan);border:1px solid rgba(0,200,255,.3)}
-.empty-state{text-align:center;padding:28px;color:var(--muted);font-size:.72rem}
-.empty-state .es-icon{font-size:2rem;margin-bottom:8px;opacity:.35;display:block}
+
+/* ── REF GRID ── */
+.ref-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:14px}
+.ref-card{background:var(–bg3);border:1px solid var(–border);border-radius:10px;overflow:hidden;position:relative;aspect-ratio:1}
+.ref-card canvas{width:100%;height:100%;object-fit:cover;display:block}
+.ref-card .rmv{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(5,12,26,.8);border:1px solid var(–border2);color:var(–muted);font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s;z-index:2}
+.ref-card .rmv:hover{background:var(–red);color:#fff;border-color:var(–red)}
+.ref-badge{position:absolute;bottom:5px;left:5px;padding:2px 7px;border-radius:4px;font-size:.58rem;z-index:2}
+.rb-ok{background:rgba(0,255,179,.2);color:var(–green);border:1px solid rgba(0,255,179,.4)}
+.rb-fail{background:rgba(255,61,90,.2);color:var(–red);border:1px solid rgba(255,61,90,.4)}
+.proc-overlay{position:absolute;inset:0;background:rgba(5,12,26,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:.63rem;color:var(–cyan);z-index:3}
+.empty-state{text-align:center;padding:28px;color:var(–muted);font-size:.72rem}
+.es-icon{font-size:2rem;margin-bottom:8px;opacity:.35;display:block}
+
+/* ── STATS ROW ── */
 .stats-row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
-.stat-item{flex:1;min-width:110px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
-.stat-val{font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:700;color:var(--cyan)}
-.stat-lbl{font-size:.58rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.1em}
-.comp-tabs{display:flex;gap:8px;margin-bottom:16px}
-.comp-tab{padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:.7rem;cursor:pointer;transition:.2s}
-.comp-tab.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,200,255,.08)}
-.comp-panel{display:none}.comp-panel.active{display:block}
-.comp-preview{max-width:400px;margin:0 auto}
-.comp-preview img,.comp-preview canvas{width:100%;border-radius:10px;display:block;border:1px solid var(--border)}
-.video-wrap{position:relative;border-radius:10px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:420px;margin:0 auto}
-.video-wrap video{width:100%;height:100%;object-fit:cover;display:block}
-.video-wrap canvas{position:absolute;inset:0;width:100%;height:100%}
-.vid-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:.72rem}
-.video-controls{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
-.run-wrap{text-align:center;padding:22px 0;border-top:1px solid var(--border);margin-top:8px}
-.btn-run{padding:13px 44px;font-size:.9rem;border-radius:10px;background:linear-gradient(135deg,#00c8ff,#0050ff);border:none;color:#000;font-family:'Syne',sans-serif;font-weight:800;cursor:pointer;transition:.25s;box-shadow:0 0 28px rgba(0,200,255,.18);letter-spacing:-.3px}
+.stat-box{flex:1;min-width:100px;background:var(–bg2);border:1px solid var(–border);border-radius:8px;padding:10px;text-align:center}
+.stat-val{font-family:‘Syne’,sans-serif;font-size:1.2rem;font-weight:700;color:var(–cyan)}
+.stat-lbl{font-size:.57rem;color:var(–muted);margin-top:2px;text-transform:uppercase;letter-spacing:.08em}
+
+/* ── COMP TABS ── */
+.ctabs{display:flex;gap:8px;margin-bottom:16px}
+.ctab{padding:7px 16px;border-radius:7px;border:1px solid var(–border);background:transparent;color:var(–muted);font-family:‘IBM Plex Mono’,monospace;font-size:.7rem;cursor:pointer;transition:.2s}
+.ctab.active{border-color:var(–cyan);color:var(–cyan);background:rgba(0,200,255,.08)}
+.cpanel{display:none}.cpanel.active{display:block}
+.comp-preview{max-width:420px;margin:0 auto;margin-top:14px}
+.comp-preview canvas{width:100%;border-radius:10px;display:block;border:1px solid var(–border)}
+
+/* ── VIDEO ── */
+.vid-wrap{position:relative;border-radius:10px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:420px;margin:0 auto}
+.vid-wrap video,.vid-wrap canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vid-wrap video{position:relative}
+.vid-overlay{position:absolute;inset:0;pointer-events:none}
+.vid-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(–muted);font-size:.72rem}
+.vid-controls{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+
+/* ── RUN ── */
+.run-wrap{text-align:center;padding:24px 0;border-top:1px solid var(–border)}
+.btn-run{padding:13px 48px;font-size:.9rem;border-radius:10px;background:linear-gradient(135deg,#00c8ff,#0050ff);border:none;color:#000;font-family:‘Syne’,sans-serif;font-weight:800;cursor:pointer;transition:.25s;box-shadow:0 0 28px rgba(0,200,255,.18);letter-spacing:-.3px}
 .btn-run:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 40px rgba(0,200,255,.3)}
 .btn-run:disabled{opacity:.35;cursor:not-allowed;transform:none}
-.run-hint{font-size:.68rem;color:var(--muted);margin-top:10px}
-.spinner{width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:spin 1s linear infinite;display:inline-block}
-.loading-card{text-align:center;padding:40px 20px}
-.big-spinner{width:40px;height:40px;border-width:3px;margin:0 auto 16px}
-.loading-text{font-size:.78rem;color:var(--muted)}
-.loading-detail{font-size:.65rem;color:var(--dim);margin-top:6px}
+.run-hint{font-size:.68rem;color:var(–muted);margin-top:10px}
+
+/* ── SPINNER ── */
+.spinner{width:22px;height:22px;border:2px solid var(–border2);border-top-color:var(–cyan);border-radius:50%;animation:spin 1s linear infinite;display:inline-block;flex-shrink:0}
+.spinner.lg{width:38px;height:38px;border-width:3px;margin-bottom:14px}
+
+/* ── RESULTS ── */
 #resultsSection{display:none}
-.verdict-box{border-radius:14px;padding:28px;text-align:center;margin-bottom:20px;border:2px solid;animation:fadeUp .5s ease both}
-.verdict-box.match{background:rgba(0,255,179,.04);border-color:rgba(0,255,179,.4)}
-.verdict-box.no-match{background:rgba(255,61,90,.04);border-color:rgba(255,61,90,.4)}
-.verdict-box.uncertain{background:rgba(255,214,0,.04);border-color:rgba(255,214,0,.4)}
+.verdict-box{border-radius:14px;padding:28px;text-align:center;margin-bottom:20px;border:2px solid}
+.vb-match{background:rgba(0,255,179,.04);border-color:rgba(0,255,179,.4)}
+.vb-nomatch{background:rgba(255,61,90,.04);border-color:rgba(255,61,90,.4)}
+.vb-uncertain{background:rgba(255,214,0,.04);border-color:rgba(255,214,0,.4)}
 .verdict-icon{font-size:2.8rem;margin-bottom:8px}
-.verdict-label{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;letter-spacing:-1px}
-.verdict-box.match .verdict-label{color:var(--green)}
-.verdict-box.no-match .verdict-label{color:var(--red)}
-.verdict-box.uncertain .verdict-label{color:var(--yellow)}
-.verdict-sub{font-size:.72rem;color:var(--muted);margin-top:6px;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.6}
+.verdict-label{font-family:‘Syne’,sans-serif;font-size:2rem;font-weight:800;letter-spacing:-1px}
+.vb-match .verdict-label{color:var(–green)}
+.vb-nomatch .verdict-label{color:var(–red)}
+.vb-uncertain .verdict-label{color:var(–yellow)}
+.verdict-sub{font-size:.72rem;color:var(–muted);margin-top:6px;line-height:1.6}
+
+/* ── GAUGE ── */
 .gauge-wrap{margin:18px 0}
-.gauge-title{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
-.gauge-track{height:10px;background:var(--bg3);border-radius:5px;position:relative;overflow:visible}
+.gauge-lbl{font-size:.63rem;color:var(–muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
+.gauge-track{height:10px;background:var(–bg3);border-radius:5px;position:relative;overflow:visible}
 .gauge-fill{height:100%;border-radius:5px;transition:width 1s cubic-bezier(.4,0,.2,1)}
-.gauge-marker{position:absolute;top:-4px;width:18px;height:18px;border-radius:50%;border:3px solid var(--bg);margin-left:-9px;transition:left 1s cubic-bezier(.4,0,.2,1)}
-.threshold-line{position:absolute;top:-5px;height:20px;width:2px;background:var(--yellow)}
-.threshold-label{position:absolute;top:-20px;transform:translateX(-50%);font-size:.57rem;color:var(--yellow);white-space:nowrap}
-.gauge-labels{display:flex;justify-content:space-between;font-size:.58rem;color:var(--dim);margin-top:6px}
-.analysis-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin:14px 0}
-.analysis-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px}
-.ac-label{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
-.ac-value{font-size:.82rem;color:var(--text);line-height:1.6}
-.feature-list{display:flex;flex-direction:column;gap:8px;margin:12px 0}
-.feature-row{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px}
-.feature-icon{font-size:1rem;flex-shrink:0;margin-top:1px}
-.feature-name{font-size:.7rem;color:var(--cyan);font-weight:500;margin-bottom:3px}
-.feature-desc{font-size:.68rem;color:var(--muted);line-height:1.55}
-.feature-score{font-size:.65rem;padding:2px 8px;border-radius:12px;flex-shrink:0;white-space:nowrap;margin-top:2px}
-.fs-high{background:rgba(0,255,179,.12);color:var(--green);border:1px solid rgba(0,255,179,.25)}
-.fs-mid{background:rgba(255,214,0,.1);color:var(--yellow);border:1px solid rgba(255,214,0,.25)}
-.fs-low{background:rgba(255,61,90,.1);color:var(--red);border:1px solid rgba(255,61,90,.25)}
-.conf-bar-wrap{margin:8px 0}
-.conf-bar-track{height:7px;background:var(--bg3);border-radius:4px;overflow:hidden}
-.conf-bar-fill{height:100%;border-radius:4px;transition:width .8s}
-.tabs-bar{display:flex;gap:2px;margin-bottom:18px;border-bottom:1px solid var(--border)}
-.tab-btn{padding:8px 14px;background:transparent;border:none;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:.7rem;cursor:pointer;border-bottom:2px solid transparent;transition:.2s;margin-bottom:-1px}
-.tab-btn.active{color:var(--cyan);border-bottom-color:var(--cyan)}
-.tab-panel{display:none}.tab-panel.active{display:block}
-.raw-output{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:.63rem;color:var(--muted);line-height:1.8;white-space:pre-wrap;max-height:400px;overflow-y:auto}
-.guide-intro{font-size:.76rem;color:var(--muted);line-height:1.75;max-width:680px;margin-bottom:22px}
+.gauge-marker{position:absolute;top:-4px;width:18px;height:18px;border-radius:50%;border:3px solid var(–bg);margin-left:-9px;transition:left 1s cubic-bezier(.4,0,.2,1)}
+.thresh-line{position:absolute;top:-6px;width:2px;height:22px;background:var(–yellow)}
+.thresh-label{position:absolute;top:-20px;font-size:.57rem;color:var(–yellow);transform:translateX(-50%);white-space:nowrap}
+.gauge-scale{display:flex;justify-content:space-between;font-size:.58rem;color:var(–dim);margin-top:5px}
+
+/* ── TABS ── */
+.tabs-bar{display:flex;gap:2px;border-bottom:1px solid var(–border);margin-bottom:18px}
+.tbtn{padding:8px 14px;background:transparent;border:none;color:var(–muted);font-family:‘IBM Plex Mono’,monospace;font-size:.7rem;cursor:pointer;border-bottom:2px solid transparent;transition:.2s;margin-bottom:-1px}
+.tbtn.active{color:var(–cyan);border-bottom-color:var(–cyan)}
+.tpanel{display:none}.tpanel.active{display:block}
+
+/* ── DATA CELLS ── */
+.info-row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.info-box{flex:1;min-width:130px;background:var(–bg3);border:1px solid var(–border);border-radius:8px;padding:9px 12px;font-size:.66rem}
+.info-box label{color:var(–muted);display:block;margin-bottom:3px;font-size:.57rem;text-transform:uppercase;letter-spacing:.1em}
+
+/* ── PER-PHOTO LIST ── */
+.photo-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.photo-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(–bg2);border:1px solid var(–border);border-radius:8px}
+.photo-thumb{width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1px solid var(–border)}
+.photo-thumb canvas{width:44px;height:44px;border-radius:6px}
+.photo-info{flex:1;min-width:0}
+.photo-name{font-size:.68rem;color:var(–text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.photo-dist{font-size:.62rem;color:var(–muted);margin-top:2px}
+.mini-bar-wrap{width:100px;height:6px;background:var(–bg3);border-radius:3px;overflow:hidden;flex-shrink:0}
+.mini-bar{height:100%;border-radius:3px;transition:width .6s}
+
+/* ── DESCRIPTOR VIZ ── */
+.desc-viz{height:80px;display:flex;align-items:flex-end;gap:1px;margin:10px 0;background:var(–bg3);border:1px solid var(–border);border-radius:8px;padding:6px;overflow:hidden}
+.dbar{flex:1;min-width:2px;border-radius:1px 1px 0 0;opacity:.9}
+.desc-legend{display:flex;gap:16px;font-size:.6rem;color:var(–muted);margin-bottom:6px}
+.desc-legend span{display:flex;align-items:center;gap:5px}
+.desc-legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+/* ── GEO GRID ── */
+.geo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px}
+.geo-item{background:var(–bg2);border:1px solid var(–border);border-radius:8px;padding:10px}
+.geo-name{font-size:.6rem;color:var(–muted);text-transform:uppercase;letter-spacing:.08em}
+.geo-val{font-family:‘Syne’,sans-serif;font-size:1rem;font-weight:700;color:var(–green);margin-top:4px}
+.geo-desc{font-size:.58rem;color:var(–dim);margin-top:2px}
+
+/* ── LANDMARKS CANVAS PREVIEW ── */
+.lm-preview-wrap{max-width:340px;margin:0 auto 16px}
+.lm-preview-wrap canvas{width:100%;border-radius:10px;border:1px solid var(–border)}
+.lm-groups{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.lm-group{background:var(–bg2);border:1px solid var(–border);border-radius:8px;padding:9px 12px;flex:1;min-width:120px}
+.lm-gname{font-size:.6rem;color:var(–muted);text-transform:uppercase;letter-spacing:.08em}
+.lm-gval{font-family:‘Syne’,sans-serif;font-size:1.1rem;font-weight:700;margin-top:3px}
+.lm-gsub{font-size:.58rem;color:var(–dim);margin-top:1px}
+
+/* ── GUIDE ── */
+.guide-intro{font-size:.76rem;color:var(–muted);line-height:1.75;max-width:680px;margin-bottom:22px}
 .accordion{display:flex;flex-direction:column;gap:10px}
-.acc-item{border:1px solid var(--border);border-radius:10px;overflow:hidden}
-.acc-head{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;background:var(--card);transition:.2s;user-select:none}
-.acc-head:hover{background:var(--card2)}
-.acc-num{width:24px;height:24px;border-radius:6px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:.63rem;color:var(--cyan);flex-shrink:0}
-.acc-title{font-family:'Syne',sans-serif;font-size:.86rem;font-weight:700;flex:1}
+.acc-item{border:1px solid var(–border);border-radius:10px;overflow:hidden}
+.acc-head{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;background:var(–card);transition:.2s;user-select:none}
+.acc-head:hover{background:var(–card2)}
+.acc-num{width:24px;height:24px;border-radius:6px;border:1px solid var(–border2);display:flex;align-items:center;justify-content:center;font-size:.63rem;color:var(–cyan);flex-shrink:0}
+.acc-title{font-family:‘Syne’,sans-serif;font-size:.86rem;font-weight:700;flex:1}
 .acc-tag{font-size:.58rem;padding:2px 8px;border-radius:4px;flex-shrink:0}
-.tag-classical{background:rgba(255,214,0,.1);color:var(--yellow);border:1px solid rgba(255,214,0,.3)}
-.tag-neural{background:rgba(168,85,247,.1);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
-.tag-math{background:rgba(0,200,255,.1);color:var(--cyan);border:1px solid rgba(0,200,255,.3)}
-.acc-arrow{color:var(--muted);transition:.25s;font-size:.75rem;flex-shrink:0}
+.t-classical{background:rgba(255,214,0,.1);color:var(–yellow);border:1px solid rgba(255,214,0,.3)}
+.t-neural{background:rgba(168,85,247,.1);color:var(–purple);border:1px solid rgba(168,85,247,.3)}
+.t-math{background:rgba(0,200,255,.1);color:var(–cyan);border:1px solid rgba(0,200,255,.3)}
+.acc-arrow{color:var(–muted);transition:.25s;font-size:.75rem;flex-shrink:0}
 .acc-head.open .acc-arrow{transform:rotate(180deg)}
-.acc-body{display:none;padding:18px 16px;background:var(--bg2);font-size:.74rem;line-height:1.8;color:var(--muted)}
+.acc-body{display:none;padding:18px 16px;background:var(–bg2);font-size:.74rem;line-height:1.8;color:var(–muted)}
 .acc-body.open{display:block}
-.acc-body h4{font-family:'Syne',sans-serif;font-size:.84rem;color:var(--text);margin:14px 0 7px}
+.acc-body h4{font-family:‘Syne’,sans-serif;font-size:.84rem;color:var(–text);margin:14px 0 7px}
 .acc-body h4:first-child{margin-top:0}
 .acc-body p{margin-bottom:9px}
 .acc-body ul{margin:0 0 10px 18px}
 .acc-body li{margin-bottom:3px}
-.acc-body code{background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--cyan);font-size:.7rem}
-.formula{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;margin:10px 0;text-align:center;font-size:.78rem;color:var(--green);letter-spacing:.05em}
-.compare-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.68rem}
-.compare-table th{text-align:left;padding:7px 10px;background:var(--bg3);color:var(--cyan);font-weight:500;border:1px solid var(--border)}
-.compare-table td{padding:6px 10px;border:1px solid var(--border)}
-.compare-table tr:nth-child(even) td{background:rgba(0,200,255,.02)}
-.highlight-box{padding:10px 14px;border-radius:8px;margin:10px 0;font-size:.71rem;line-height:1.7}
-.hb-cyan{background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.2);color:var(--text)}
-.hb-yellow{background:rgba(255,214,0,.06);border:1px solid rgba(255,214,0,.2);color:var(--text)}
-.hb-green{background:rgba(0,255,179,.06);border:1px solid rgba(0,255,179,.2);color:var(--text)}
-.pipeline{display:flex;flex-direction:column;gap:0;margin:12px 0}
-.pipe-row{display:flex;align-items:center;gap:10px;padding:7px 0}
-.pipe-connector{width:1px;height:14px;background:var(--border);margin-left:11px}
-.pipe-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:600;flex-shrink:0;border:1px solid}
-.pipe-content strong{color:var(--text);font-size:.76rem}
-.pipe-content span{color:var(--muted);font-size:.65rem;display:block;margin-top:1px}
-.info-row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-.info-box{flex:1;min-width:140px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.66rem}
-.info-box label{color:var(--muted);display:block;margin-bottom:3px;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em}
+.acc-body code{background:var(–bg3);padding:1px 6px;border-radius:4px;color:var(–cyan);font-size:.7rem}
+.formula{background:var(–bg3);border:1px solid var(–border2);border-radius:8px;padding:11px 14px;margin:10px 0;text-align:center;font-size:.78rem;color:var(–green);letter-spacing:.03em}
+.cmp-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.68rem}
+.cmp-table th{text-align:left;padding:7px 10px;background:var(–bg3);color:var(–cyan);font-weight:500;border:1px solid var(–border)}
+.cmp-table td{padding:6px 10px;border:1px solid var(–border)}
+.cmp-table tr:nth-child(even) td{background:rgba(0,200,255,.02)}
+.hbox{padding:10px 14px;border-radius:8px;margin:10px 0;font-size:.71rem;line-height:1.7}
+.hb-c{background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.2);color:var(–text)}
+.hb-y{background:rgba(255,214,0,.06);border:1px solid rgba(255,214,0,.2);color:var(–text)}
+.hb-g{background:rgba(0,255,179,.06);border:1px solid rgba(0,255,179,.2);color:var(–text)}
+
+/* ── TOAST ── */
 .notify{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:7px;pointer-events:none}
-.toast{padding:9px 14px;border-radius:8px;font-size:.7rem;border:1px solid;pointer-events:auto;animation:slideIn .25s ease;max-width:280px}
-.toast.info{background:rgba(0,200,255,.12);border-color:rgba(0,200,255,.3);color:var(--cyan)}
-.toast.success{background:rgba(0,255,179,.12);border-color:rgba(0,255,179,.3);color:var(--green)}
-.toast.error{background:rgba(255,61,90,.12);border-color:rgba(255,61,90,.3);color:var(--red)}
+.toast{padding:9px 14px;border-radius:8px;font-size:.7rem;border:1px solid;pointer-events:auto;animation:slideIn .25s ease;max-width:290px}
+.ti{background:rgba(0,200,255,.12);border-color:rgba(0,200,255,.3);color:var(–cyan)}
+.ts{background:rgba(0,255,179,.12);border-color:rgba(0,255,179,.3);color:var(–green)}
+.te{background:rgba(255,61,90,.12);border-color:rgba(255,61,90,.3);color:var(–red)}
+
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 @keyframes fadeUp{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
-@keyframes slideIn{from{transform:translateX(16px);opacity:0}to{transform:none;opacity:1}}
+@keyframes slideIn{from{transform:translateX(14px);opacity:0}to{transform:none;opacity:1}}
+.fade-up{animation:fadeUp .4s ease both}
 </style>
+
 </head>
 <body>
 <div class="notify" id="notify"></div>
 <div class="wrap">
 
+<!-- HEADER -->
+
 <header>
-  <div class="header-inner">
+  <div class="hdr">
     <div class="logo">
       <div class="logo-icon">
         <svg viewBox="0 0 24 24" fill="none">
@@ -191,89 +258,106 @@ input[type=file]{display:none}
         <p>Educational Facial Recognition System</p>
       </div>
     </div>
-    <div class="header-badge">Claude Vision AI · 100% Browser-Side · No Data Stored</div>
+    <div class="status-pill">
+      <div class="sdot" id="sdot"></div>
+      <span id="statusTxt">Models not loaded</span>
+    </div>
   </div>
 </header>
 
-<!-- SECTION 1: REFERENCE PHOTOS -->
+<!-- STEP 0: LOAD MODELS -->
 
-<div class="section">
+<div class="section" id="loadSection">
+  <div class="card" style="text-align:center;padding:32px 20px">
+    <div style="font-size:2.2rem;margin-bottom:10px">🧠</div>
+    <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:8px">Load Neural Network Models</div>
+    <div style="font-size:.72rem;color:var(--muted);max-width:520px;margin:0 auto 20px;line-height:1.7">
+      Downloads 3 models via <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--cyan)">cdn.jsdelivr.net</code>:
+      SSD MobileNet v1 (face detection), 68-point Landmark CNN, and ResNet-34 face recognition. All run locally in your browser.
+    </div>
+    <div id="progWrap" style="display:none" class="prog-wrap">
+      <div class="prog-row"><span id="progLabel">Loading...</span><span id="progPct">0%</span></div>
+      <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      <div class="prog-detail" id="progDetail">Initializing...</div>
+    </div>
+    <button class="btn btn-primary" id="loadBtn" onclick="loadModels()" style="margin-top:4px">
+      ⬇ Load Models &amp; Start
+    </button>
+  </div>
+</div>
+
+<!-- STEP 1: REFERENCE PHOTOS -->
+
+<div class="section" id="refSection" style="display:none">
   <div class="sec-head">
     <div class="sec-num">1</div>
-    <div>
-      <div class="sec-title">Reference Photos</div>
-      <div class="sec-sub">Upload 1–6 clear photos of the subject — more photos improve accuracy</div>
-    </div>
+    <div><div class="sec-title">Reference Photos</div><div class="sec-sub">Upload 2–6 photos of the subject — more photos improve accuracy</div></div>
     <div class="sec-line"></div>
-    <span id="refCountBadge" style="font-size:.65rem;color:var(--muted)">0 / 6</span>
+    <span id="refBadge" style="font-size:.65rem;color:var(--muted)">0 / 6</span>
   </div>
   <div class="card">
-    <div class="drop-zone" id="refDrop" onclick="document.getElementById('refInput').click()">
+    <div class="drop-zone" id="refDrop" onclick="document.getElementById('refIn').click()">
       <div class="dz-icon">📸</div>
       <div class="dz-label">Drag &amp; drop or click to upload</div>
-      <div class="dz-sub">JPG · PNG · WebP · Up to 6 photos</div>
+      <div class="dz-sub">JPG · PNG · WebP · Max 6 photos</div>
     </div>
-    <input type="file" id="refInput" multiple accept="image/*" onchange="addRefPhotos(this.files)">
+    <input type="file" id="refIn" multiple accept="image/*" onchange="handleRefFiles(this.files)">
     <div id="refEmpty" class="empty-state"><span class="es-icon">🖼</span>No reference photos yet</div>
     <div id="refGrid" class="ref-grid"></div>
-    <div id="refStats" style="display:none" class="stats-row">
-      <div class="stat-item"><div class="stat-val" id="sPhotoCount">0</div><div class="stat-lbl">Photos loaded</div></div>
-      <div class="stat-item"><div class="stat-val" id="sTotalSize">—</div><div class="stat-lbl">Total size</div></div>
-      <div class="stat-item"><div class="stat-val">max 512px</div><div class="stat-lbl">Process size</div></div>
-      <div class="stat-item"><div class="stat-val">Claude AI</div><div class="stat-lbl">Engine</div></div>
+    <div id="refStats" class="stats-row" style="display:none">
+      <div class="stat-box"><div class="stat-val" id="stCount">0</div><div class="stat-lbl">Photos</div></div>
+      <div class="stat-box"><div class="stat-val" id="stFaces">0</div><div class="stat-lbl">Faces found</div></div>
+      <div class="stat-box"><div class="stat-val">128-d</div><div class="stat-lbl">Embedding size</div></div>
+      <div class="stat-box"><div class="stat-val" id="stConf">—</div><div class="stat-lbl">Avg detect conf</div></div>
     </div>
   </div>
 </div>
 
-<!-- SECTION 2: COMPARISON -->
+<!-- STEP 2: COMPARISON -->
 
-<div class="section">
+<div class="section" id="compSection" style="display:none">
   <div class="sec-head">
     <div class="sec-num">2</div>
-    <div>
-      <div class="sec-title">Comparison Input</div>
-      <div class="sec-sub">Upload a photo or capture from your live camera</div>
-    </div>
+    <div><div class="sec-title">Comparison Input</div><div class="sec-sub">Upload a photo or use your live camera</div></div>
     <div class="sec-line"></div>
   </div>
   <div class="card">
-    <div class="comp-tabs">
-      <button class="comp-tab active" onclick="switchCompTab('upload',this)">📁 Upload Photo</button>
-      <button class="comp-tab" onclick="switchCompTab('camera',this)">📷 Live Camera</button>
+    <div class="ctabs">
+      <button class="ctab active" onclick="switchCTab('upload',this)">📁 Upload Photo</button>
+      <button class="ctab" onclick="switchCTab('camera',this)">📷 Live Camera</button>
     </div>
 
 ```
-<div class="comp-panel active" id="panel-upload">
-  <div class="drop-zone" id="compDrop" onclick="document.getElementById('compInput').click()">
+<!-- upload -->
+<div class="cpanel active" id="cpanel-upload">
+  <div class="drop-zone" id="compDrop" onclick="document.getElementById('compIn').click()">
     <div class="dz-icon">🔍</div>
     <div class="dz-label">Upload comparison photo</div>
-    <div class="dz-sub">The face to be identified</div>
+    <div class="dz-sub">Single face for identification</div>
   </div>
-  <input type="file" id="compInput" accept="image/*" onchange="setCompPhoto(this.files[0])">
-  <div id="compPreviewWrap" style="display:none;margin-top:14px">
-    <div class="comp-preview"><img id="compImg" alt="comparison"></div>
-    <div style="font-size:.65rem;color:var(--green);text-align:center;margin-top:8px">✓ Comparison image loaded</div>
+  <input type="file" id="compIn" accept="image/*" onchange="handleCompFile(this.files[0])">
+  <div id="compPreview" class="comp-preview" style="display:none">
+    <canvas id="compCanvas"></canvas>
+    <div style="font-size:.65rem;color:var(--green);text-align:center;margin-top:8px" id="compOkLabel"></div>
   </div>
 </div>
 
-<div class="comp-panel" id="panel-camera">
-  <div class="video-wrap" id="videoWrap">
-    <video id="videoEl" autoplay muted playsinline></video>
-    <canvas id="liveCanvas"></canvas>
-    <div class="vid-placeholder" id="vidPlaceholder">
-      <span style="font-size:2rem">📷</span><span>Camera not started</span>
-    </div>
+<!-- camera -->
+<div class="cpanel" id="cpanel-camera">
+  <div class="vid-wrap" style="max-width:420px;margin:0 auto">
+    <video id="vidEl" autoplay muted playsinline style="position:relative;width:100%;height:100%;object-fit:cover;display:block"></video>
+    <canvas id="vidOverlay" class="vid-overlay" style="pointer-events:none"></canvas>
+    <div class="vid-placeholder" id="vidPH"><span style="font-size:2rem">📷</span><span>Camera not started</span></div>
   </div>
-  <div class="video-controls">
-    <button class="btn btn-ghost" id="startCamBtn" onclick="startCamera()">▶ Start Camera</button>
-    <button class="btn btn-ghost" id="stopCamBtn" onclick="stopCamera()" style="display:none">⬛ Stop</button>
-    <button class="btn btn-green" id="snapBtn" onclick="takeSnapshot()" style="display:none">📸 Capture Frame</button>
-    <button class="btn btn-ghost" id="liveBtn" onclick="toggleLive()" style="display:none">⚡ Live Analysis: OFF</button>
+  <div class="vid-controls">
+    <button class="btn btn-ghost" id="camStartBtn" onclick="startCam()">▶ Start Camera</button>
+    <button class="btn btn-ghost" id="camStopBtn" onclick="stopCam()" style="display:none">⬛ Stop</button>
+    <button class="btn btn-green" id="snapBtn" onclick="takeSnap()" style="display:none">📸 Capture Frame</button>
+    <button class="btn btn-ghost" id="liveBtn" onclick="toggleLive()" style="display:none">⚡ Live: OFF</button>
   </div>
-  <div id="snapPreview" style="display:none;margin-top:14px">
-    <div style="font-size:.63rem;color:var(--muted);margin-bottom:7px;text-align:center">SNAPSHOT</div>
-    <div class="comp-preview"><canvas id="snapCanvas"></canvas></div>
-    <div style="font-size:.65rem;color:var(--green);text-align:center;margin-top:8px">✓ Snapshot captured</div>
+  <div id="snapPreview" class="comp-preview" style="display:none;margin-top:14px">
+    <canvas id="snapCanvas"></canvas>
+    <div style="font-size:.65rem;color:var(--green);text-align:center;margin-top:8px" id="snapOkLabel"></div>
   </div>
 </div>
 ```
@@ -283,526 +367,782 @@ input[type=file]{display:none}
 
 <!-- RUN -->
 
-<div class="run-wrap">
-  <button class="btn-run" id="runBtn" onclick="runAnalysis()" disabled>🔬 Run Facial Recognition Analysis</button>
+<div class="run-wrap" id="runWrap" style="display:none">
+  <button class="btn-run" id="runBtn" onclick="runAnalysis()" disabled>🔬 Run Analysis</button>
   <div class="run-hint" id="runHint">Add reference photos and a comparison image to begin</div>
 </div>
 
-<!-- SECTION 3: RESULTS -->
+<!-- STEP 3: RESULTS -->
 
-<div class="section" id="resultsSection">
+<div class="section" id="resultsSection" style="display:none">
   <div class="sec-head">
     <div class="sec-num">3</div>
-    <div>
-      <div class="sec-title">Analysis Results</div>
-      <div class="sec-sub">AI-powered facial recognition output</div>
-    </div>
+    <div><div class="sec-title">Analysis Results</div><div class="sec-sub">Neural network facial recognition output + classical geometric metrics</div></div>
     <div class="sec-line"></div>
-    <button class="btn btn-ghost" onclick="resetResults()" style="font-size:.65rem;padding:5px 12px">↺ Reset</button>
+    <button class="btn btn-ghost" onclick="$('resultsSection').style.display='none'" style="font-size:.65rem;padding:5px 12px">↺ Hide</button>
   </div>
   <div class="card">
-    <div class="loading-card" id="loadingState" style="display:none">
-      <div class="spinner big-spinner"></div>
-      <div class="loading-text">Analyzing faces with Claude Vision AI...</div>
-      <div class="loading-detail" id="loadingDetail">Sending images to AI model...</div>
+    <!-- Verdict -->
+    <div id="verdictBox" class="verdict-box vb-match fade-up">
+      <div class="verdict-icon" id="vIcon">—</div>
+      <div class="verdict-label" id="vLabel">—</div>
+      <div class="verdict-sub" id="vSub">Run analysis to see results</div>
     </div>
-    <div id="resultsContent" style="display:none">
-      <div id="verdictBox" class="verdict-box match">
-        <div class="verdict-icon" id="verdictIcon">—</div>
-        <div class="verdict-label" id="verdictLabel">—</div>
-        <div class="verdict-sub" id="verdictSub">—</div>
-      </div>
-      <div class="gauge-wrap">
-        <div class="gauge-title">Match Confidence Score</div>
-        <div class="gauge-track">
-          <div class="gauge-fill" id="gaugeFill" style="width:0%"></div>
-          <div class="gauge-marker" id="gaugeMarker" style="left:0%"></div>
-          <div class="threshold-line" style="left:60%"><span class="threshold-label">60% threshold</span></div>
-        </div>
-        <div class="gauge-labels"><span>0% — No similarity</span><span>60% — Decision boundary</span><span>100% — Certain match</span></div>
-      </div>
-      <div class="tabs-bar">
-        <button class="tab-btn active" onclick="switchResTab('summary',this)">Summary</button>
-        <button class="tab-btn" onclick="switchResTab('features',this)">Feature Analysis</button>
-        <button class="tab-btn" onclick="switchResTab('technical',this)">Technical</button>
-        <button class="tab-btn" onclick="switchResTab('raw',this)">Raw JSON</button>
-      </div>
-      <div class="tab-panel active" id="tab-summary">
-        <div class="stats-row" id="summaryStats"></div>
-        <div class="analysis-grid" id="summaryGrid"></div>
-      </div>
-      <div class="tab-panel" id="tab-features">
-        <div style="font-size:.7rem;color:var(--muted);margin-bottom:12px">Point-by-point AI analysis of individual facial features, each scored independently.</div>
-        <div class="feature-list" id="featureList"></div>
-      </div>
-      <div class="tab-panel" id="tab-technical">
-        <div style="font-size:.7rem;color:var(--muted);margin-bottom:12px">Technical metadata from the analysis pipeline.</div>
-        <div class="info-row" id="techData"></div>
-        <div style="margin-top:14px;font-size:.68rem;color:var(--muted);margin-bottom:7px">CONFIDENCE BY FEATURE</div>
-        <div id="confBreakdown"></div>
-      </div>
-      <div class="tab-panel" id="tab-raw">
-        <div style="font-size:.7rem;color:var(--muted);margin-bottom:10px">Raw JSON output from Claude's analysis.</div>
-        <pre class="raw-output" id="rawOutput"></pre>
-      </div>
-    </div>
+
+```
+<!-- Gauge -->
+<div class="gauge-wrap">
+  <div class="gauge-lbl">Euclidean Distance Score</div>
+  <div class="gauge-track">
+    <div class="gauge-fill" id="gFill" style="width:0%"></div>
+    <div class="gauge-marker" id="gMark" style="left:0%"></div>
+    <div class="thresh-line" style="left:43%"><span class="thresh-label">threshold 0.6</span></div>
+  </div>
+  <div class="gauge-scale"><span>0.0 — identical</span><span>0.6 — boundary</span><span>1.4+ — different</span></div>
+</div>
+
+<!-- Result Tabs -->
+<div class="tabs-bar">
+  <button class="tbtn active" onclick="switchRTab('overview',this)">Overview</button>
+  <button class="tbtn" onclick="switchRTab('perphoto',this)">Per-Photo</button>
+  <button class="tbtn" onclick="switchRTab('descriptor',this)">Descriptor</button>
+  <button class="tbtn" onclick="switchRTab('landmarks',this)">Landmarks</button>
+  <button class="tbtn" onclick="switchRTab('geometry',this)">Geometry</button>
+</div>
+
+<!-- Overview -->
+<div class="tpanel active" id="tab-overview">
+  <div class="stats-row" id="ovStats"></div>
+  <div class="info-row" id="ovInfo"></div>
+</div>
+
+<!-- Per-photo -->
+<div class="tpanel" id="tab-perphoto">
+  <div style="font-size:.7rem;color:var(--muted);margin-bottom:10px">Distance from each individual reference photo to the comparison image.</div>
+  <div class="photo-list" id="photoList"></div>
+</div>
+
+<!-- Descriptor -->
+<div class="tpanel" id="tab-descriptor">
+  <div style="font-size:.7rem;color:var(--muted);margin-bottom:10px">128-dimensional face embedding vectors. Bars show each dimension: cyan = reference average, coloured = comparison (green=similar, red=different).</div>
+  <div class="desc-legend">
+    <span><i style="background:rgba(0,200,255,.8)"></i>Reference avg</span>
+    <span><i style="background:var(--green)"></i>Comparison (low diff)</span>
+    <span><i style="background:var(--red)"></i>Comparison (high diff)</span>
+  </div>
+  <div class="desc-viz" id="descViz"></div>
+  <div style="display:flex;justify-content:space-between;font-size:.58rem;color:var(--dim);margin-top:3px"><span>dim 1</span><span>dim 64</span><span>dim 128</span></div>
+  <div class="info-row" style="margin-top:14px">
+    <div class="info-box"><label>Norm (ref avg)</label><span id="normRef">—</span></div>
+    <div class="info-box"><label>Norm (comparison)</label><span id="normComp">—</span></div>
+    <div class="info-box"><label>Cosine similarity</label><span id="cosineVal">—</span></div>
+    <div class="info-box"><label>Dot product</label><span id="dotVal">—</span></div>
   </div>
 </div>
 
-<!-- SECTION 4: GUIDE -->
+<!-- Landmarks -->
+<div class="tpanel" id="tab-landmarks">
+  <div style="font-size:.7rem;color:var(--muted);margin-bottom:12px">68-point facial landmarks detected on the comparison image by the CNN landmark model.</div>
+  <div class="lm-preview-wrap"><canvas id="lmCanvas"></canvas></div>
+  <div class="lm-groups" id="lmGroups"></div>
+</div>
+
+<!-- Geometry -->
+<div class="tpanel" id="tab-geometry">
+  <div style="font-size:.7rem;color:var(--muted);margin-bottom:12px">Classical geometric metrics computed from landmark positions — inspired by anthropometry and the Eigenfaces/PCA tradition of shape-based recognition.</div>
+  <div class="geo-grid" id="geoGrid"></div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- STEP 4: GUIDE -->
 
 <div class="section" style="margin-top:40px">
   <div class="sec-head">
     <div class="sec-num">📖</div>
-    <div>
-      <div class="sec-title">How Facial Recognition Works — Technical Guide</div>
-      <div class="sec-sub">Classical computer vision vs modern deep learning, explained</div>
-    </div>
+    <div><div class="sec-title">How It Works — Technical Guide</div><div class="sec-sub">Classical computer vision vs. modern deep learning, explained in full</div></div>
     <div class="sec-line"></div>
   </div>
-
-  <p class="guide-intro">Facial recognition pipelines combine image processing, geometry, and machine learning. This guide walks through every stage — from detecting a face in raw pixels to making a final match/no-match decision — contrasting historical classical methods with modern neural approaches.</p>
+  <p class="guide-intro">This tool runs a complete facial recognition pipeline entirely in your browser using the <strong>@vladmandic/face-api</strong> library — a modern, actively maintained fork of face-api.js with TensorFlow.js as its compute backend. The guide below explains every stage of the pipeline, contrasting classical methods (pre-2010) with the neural network approaches used today.</p>
 
   <div class="accordion">
 
 ```
 <div class="acc-item">
-  <div class="acc-head" onclick="toggleAcc(this)">
+  <div class="acc-head" onclick="togAcc(this)">
     <div class="acc-num">1</div>
-    <div class="acc-title">Face Detection — Finding the Face in an Image</div>
-    <span class="acc-tag tag-classical">Classical: Viola-Jones</span>
-    <span class="acc-tag tag-neural">Neural: MTCNN / SSD</span>
+    <div class="acc-title">Face Detection — SSD MobileNet v1</div>
+    <span class="acc-tag t-classical">Classical: Viola-Jones</span>
+    <span class="acc-tag t-neural">Neural: SSD MobileNet</span>
     <span class="acc-arrow">▼</span>
   </div>
   <div class="acc-body">
     <h4>What is Face Detection?</h4>
-    <p>Before recognition can happen, the system must <em>locate</em> all faces in the image. This is a binary classification problem (face vs background) repeated at every position and scale in the image using a sliding window approach.</p>
+    <p>Before recognition can happen the system must <em>locate</em> every face in the image and return bounding boxes. It is a dense binary classification problem — face vs background — solved at every position and scale.</p>
     <h4>🕰 Classical: Viola-Jones (2001)</h4>
-    <p>Three core innovations made it the first real-time face detector:</p>
     <ul>
-      <li><strong>Haar-like features:</strong> Simple rectangular brightness-difference patterns. Eyes are darker than cheeks; the nose bridge is lighter than sides. 160,000+ such features exist per detection window.</li>
-      <li><strong>Integral Image:</strong> A precomputed lookup table so any rectangular region sum costs exactly 4 operations — O(1). Without it, evaluating all Haar features would be impossibly slow.</li>
-      <li><strong>AdaBoost + Cascade:</strong> AdaBoost picks the 200 most discriminative features. They're arranged in a cascade — cheap early stages reject 99.9% of non-face regions before expensive later stages run.</li>
+      <li><strong>Haar-like features</strong> measure brightness differences between rectangular image regions — e.g. eyes are darker than cheeks, the nose bridge is lighter than the sides. Over 160,000 features exist per detection window.</li>
+      <li><strong>Integral Image</strong> pre-computes cumulative pixel sums so any rectangular region sum requires exactly 4 lookups — O(1) regardless of size.</li>
+      <li><strong>AdaBoost + Cascade</strong> selects the 200 most discriminative features and chains them: cheap early stages reject ~99.9% of non-face windows so expensive later stages only run on the rare remaining candidates.</li>
     </ul>
-    <div class="highlight-box hb-yellow">⚡ Viola-Jones ran at 15 fps on 2001 hardware. Still shipped in OpenCV today. Its main limitation: only reliable for near-frontal faces within ±30° tilt.</div>
-    <h4>🤖 Neural: MTCNN / SSD MobileNet</h4>
-    <p>Modern CNNs learn features hierarchically from millions of training images — edges → facial parts → faces — entirely from data. They handle rotation to ±45°, occlusion, diverse lighting, and varied ethnicity with 97–99% accuracy vs Viola-Jones' ~88%.</p>
-    <table class="compare-table">
-      <tr><th>Property</th><th>Viola-Jones</th><th>Neural (MTCNN)</th></tr>
-      <tr><td>Year</td><td>2001</td><td>2016</td></tr>
-      <tr><td>Features</td><td>Hand-crafted (Haar)</td><td>Learned (CNN)</td></tr>
-      <tr><td>Accuracy</td><td>~88% frontal</td><td>97–99%</td></tr>
+    <div class="hbox hb-y">⚡ Viola-Jones achieved 15 fps on 2001 hardware. It is still shipped in OpenCV today. Its main limitation: reliable only within ±30° of frontal pose.</div>
+    <h4>🤖 Neural: SSD MobileNet v1 (used in this tool)</h4>
+    <p><strong>Single Shot Detector</strong> with a lightweight <strong>MobileNet</strong> backbone. A single forward pass through the CNN simultaneously predicts bounding boxes and confidence scores at multiple scales using pre-defined anchor boxes. Non-Maximum Suppression removes duplicate detections. Trained on millions of labelled faces.</p>
+    <table class="cmp-table">
+      <tr><th>Property</th><th>Viola-Jones</th><th>SSD MobileNet</th></tr>
+      <tr><td>Year</td><td>2001</td><td>2017</td></tr>
+      <tr><td>Feature type</td><td>Hand-crafted Haar</td><td>Learned CNN</td></tr>
+      <tr><td>Accuracy (LFW)</td><td>~88%</td><td>~97%+</td></tr>
       <tr><td>Rotation tolerance</td><td>±30°</td><td>±45°+</td></tr>
+      <tr><td>Training images</td><td>~5 k</td><td>Millions</td></tr>
     </table>
   </div>
 </div>
 
 <div class="acc-item">
-  <div class="acc-head" onclick="toggleAcc(this)">
+  <div class="acc-head" onclick="togAcc(this)">
     <div class="acc-num">2</div>
-    <div class="acc-title">Facial Landmarks — Mapping 68 Key Points</div>
-    <span class="acc-tag tag-classical">Classical: ASM / AAM</span>
-    <span class="acc-tag tag-neural">Neural: CNN Regression</span>
+    <div class="acc-title">Facial Landmarks — 68-Point CNN</div>
+    <span class="acc-tag t-classical">Classical: ASM / AAM</span>
+    <span class="acc-tag t-neural">Neural: CNN Regression</span>
     <span class="acc-arrow">▼</span>
   </div>
   <div class="acc-body">
-    <h4>What are Landmarks?</h4>
-    <p>Landmarks are precise (x,y) coordinates at anatomical locations: 17 jaw points, 10 eyebrow points, 9 nose points, 12 eye points, 20 mouth points. They enable two things:</p>
+    <h4>68 Anatomical Points</h4>
+    <p>The iBUG 68-point scheme labels: jaw outline (17), eyebrows (10), nose (9), eyes (12), mouth (20). Two uses:</p>
     <ul>
-      <li><strong>Face alignment:</strong> Rotate and scale so eye centers always land at fixed positions, removing the largest sources of pose variation before recognition</li>
-      <li><strong>Geometric analysis:</strong> Compute classical ratios — face aspect, interpupillary distance, nose-mouth proportions</li>
+      <li><strong>Face alignment</strong> — affine-transform so eye centers always land at canonical positions, removing pose variation before recognition</li>
+      <li><strong>Geometric analysis</strong> — compute anthropometric ratios for classical shape-based comparison (see Geometry tab)</li>
     </ul>
-    <h4>🕰 Classical: Active Shape Models (Cootes, 1995)</h4>
-    <p>ASMs learn a <strong>statistical shape model</strong> of valid face configurations via PCA. Fitting iteratively moves landmarks toward strong image gradients while staying within ±3 standard deviations of the learned shape distribution — preventing physically impossible configurations.</p>
-    <h4>🤖 Neural: CNN Regression (Hourglass Networks)</h4>
-    <p>A CNN trained end-to-end directly outputs all 68 (x,y) values from a cropped face crop. Stacked Hourglass networks progressively refine predictions — similar in spirit to ASM's iterative fitting but learned entirely from data. Modern accuracy: &lt;1px mean error on benchmarks.</p>
-    <div class="highlight-box hb-green">📐 <strong>Affine alignment:</strong> Compute the angle θ between eye center coordinates, rotate the image by −θ, then scale so the inter-eye distance equals a fixed target (e.g., 72px). This normalization step is why recognition works across different photo distances.</div>
+    <h4>🕰 Classical: Active Shape Models (Cootes 1995)</h4>
+    <p>Build a PCA model of valid landmark configurations. Fitting iteratively moves points toward local image gradients while constraining the shape to lie within ±3 standard deviations of the training distribution. Sensitive to initialisation and poor in profile views.</p>
+    <h4>🤖 Neural: CNN Regression (used here)</h4>
+    <p>A CNN trained end-to-end with MSE loss directly regresses all 68 (x,y) coordinates from a cropped face image. The vladmandic fork uses a small but accurate architecture achieving sub-pixel error on standard benchmarks at high speed in the browser.</p>
+    <div class="hbox hb-g">📐 <strong>Affine alignment:</strong> Compute angle θ = atan2(Δy,Δx) between eye centres, rotate image by −θ, scale so inter-eye distance = 72 px. This is the single most important pre-processing step for recognition accuracy.</div>
   </div>
 </div>
 
 <div class="acc-item">
-  <div class="acc-head" onclick="toggleAcc(this)">
+  <div class="acc-head" onclick="togAcc(this)">
     <div class="acc-num">3</div>
-    <div class="acc-title">Feature Extraction — Encoding Identity as Numbers</div>
-    <span class="acc-tag tag-classical">Classical: Eigenfaces / HOG / LBP</span>
-    <span class="acc-tag tag-neural">Neural: ResNet Embeddings</span>
+    <div class="acc-title">Face Embeddings — ResNet-34 + Triplet Loss</div>
+    <span class="acc-tag t-classical">Classical: Eigenfaces / LBP / HOG</span>
+    <span class="acc-tag t-neural">Neural: ResNet Embeddings</span>
     <span class="acc-arrow">▼</span>
   </div>
   <div class="acc-body">
-    <h4>The Core Challenge</h4>
-    <p>Convert a face image into a compact vector where same-person faces cluster together and different-person faces are far apart — across all lighting, expression, and pose variations.</p>
-    <h4>🕰 Eigenfaces — PCA (Turk &amp; Pentland, 1991)</h4>
-    <p>Apply PCA to a database of flattened face images. Each image is a point in high-dimensional space (e.g. 150×150 = 22,500 dims). PCA finds the "eigenfaces" — directions of maximum variance — and projects each new face onto the top K eigenvectors:</p>
-    <div class="formula">f = Wᵀ(x − μ) &nbsp; where W = [e₁, e₂, ..., eₖ]</div>
-    <p>Works well in controlled studio lighting. Fails with real-world illumination variation because PCA captures lighting changes as identity differences.</p>
-    <h4>🕰 HOG — Histogram of Oriented Gradients</h4>
-    <p>Divide image into 8×8 pixel cells. For each pixel, compute gradient direction and magnitude. Build a 9-bin histogram of directions per cell. Normalize across 2×2 cell blocks for illumination invariance. Concatenate all histograms into one feature vector. A linear SVM on HOG achieves ~97% face detection accuracy.</p>
-    <h4>🤖 Neural: ResNet Embeddings with Triplet Loss (FaceNet, dlib)</h4>
-    <p>A deep residual network trained using <strong>triplet loss</strong> on millions of face pairs. Given anchor A, positive P (same person), negative N (different person):</p>
-    <div class="formula">L = max(0, d(A,P) − d(A,N) + α)</div>
-    <p>The loss forces same-person pairs closer and different-person pairs further apart by margin α. After training, the network outputs a 128-d embedding where Euclidean distance directly measures identity similarity.</p>
-    <div class="highlight-box hb-cyan">✦ This tool uses Claude's multimodal vision model as the "feature extractor" — its internal representations, built from pretraining on vast image datasets, act as a very large embedding network that can also articulate its reasoning in natural language.</div>
+    <h4>The Core Problem</h4>
+    <p>Compress a face image (e.g. 150×150 = 22,500 pixels) to a compact vector where same-identity faces cluster together and different identities are far apart — under all lighting, expression, and pose variations.</p>
+    <h4>🕰 Eigenfaces — PCA (Turk &amp; Pentland 1991)</h4>
+    <p>Apply PCA to a matrix of flattened face images. The K principal eigenvectors (eigenfaces) define a face subspace. Each new image is projected onto this subspace:</p>
+    <div class="formula">f = Wᵀ(x − μ) &nbsp;&nbsp; W = [e₁ … eₖ] eigenvectors</div>
+    <p>Works in controlled studio light; fails when lighting changes because PCA encodes illumination variation as identity difference.</p>
+    <h4>🕰 HOG + LBP</h4>
+    <p><strong>HOG</strong> (Histogram of Oriented Gradients) divides the image into 8×8 cells, computes gradient direction histograms per cell, normalises across 2×2 block groups → illumination-invariant edge descriptor. <strong>LBP</strong> (Local Binary Pattern) compares each pixel to its 8 neighbours, encodes as an 8-bit number, histograms over the face grid. Both feed a linear SVM. Still used in embedded systems for their speed.</p>
+    <h4>🤖 ResNet-34 + Triplet Loss (used here)</h4>
+    <p>A 34-layer <strong>Residual Network</strong> trained using <strong>triplet loss</strong> on millions of face pairs. Given anchor A, positive P (same person, different photo), negative N (different person):</p>
+    <div class="formula">L = max(0, ‖f(A)−f(P)‖² − ‖f(A)−f(N)‖² + α)</div>
+    <p>The network learns a 128-dimensional embedding where same-identity faces sit within distance 0.6 and different identities sit further. The vladmandic model is converted from dlib's <code>dlib_face_recognition_resnet_model_v1</code>.</p>
+    <div class="hbox hb-c">✦ The Descriptor tab in results shows both the reference-average embedding and comparison embedding as bar charts — visually similar silhouettes indicate a match.</div>
   </div>
 </div>
 
 <div class="acc-item">
-  <div class="acc-head" onclick="toggleAcc(this)">
+  <div class="acc-head" onclick="togAcc(this)">
     <div class="acc-num">4</div>
-    <div class="acc-title">Matching &amp; Decision — Making the Call</div>
-    <span class="acc-tag tag-math">Distance Metrics + Thresholds</span>
+    <div class="acc-title">Matching &amp; Decision — Euclidean Distance + Threshold</div>
+    <span class="acc-tag t-math">Mathematics</span>
     <span class="acc-arrow">▼</span>
   </div>
   <div class="acc-body">
-    <h4>Distance Metrics</h4>
-    <p><strong>Euclidean Distance</strong> (standard for dlib ResNet-34):</p>
-    <div class="formula">d(a,b) = √( Σᵢ (aᵢ − bᵢ)² )</div>
-    <p><strong>Cosine Similarity</strong> (scale-invariant, good for normalized embeddings):</p>
-    <div class="formula">cos(a,b) = (a · b) / (‖a‖ · ‖b‖)</div>
-    <h4>Standard Thresholds (128-d Euclidean)</h4>
-    <table class="compare-table">
+    <h4>Euclidean Distance in 128-D Space</h4>
+    <div class="formula">d(a,b) = √( Σᵢ₌₁¹²⁸ (aᵢ − bᵢ)² )</div>
+    <p>After triplet-loss training, same-person descriptors reliably land within distance 0.6. The standard threshold (from dlib's evaluation on LFW dataset) is:</p>
+    <table class="cmp-table">
       <tr><th>Distance</th><th>Interpretation</th></tr>
-      <tr><td>0.0 – 0.3</td><td>Very high confidence match</td></tr>
+      <tr><td>0.0 – 0.3</td><td>Very confident match</td></tr>
       <tr><td>0.3 – 0.5</td><td>Confident match</td></tr>
-      <tr><td>0.5 – 0.6</td><td>Probable match (boundary zone)</td></tr>
+      <tr><td>0.5 – 0.6</td><td>Probable match (boundary)</td></tr>
       <tr><td>0.6 – 0.8</td><td>Likely different person</td></tr>
       <tr><td>0.8+</td><td>Confident different person</td></tr>
     </table>
-    <h4>Why Average Multiple Reference Photos?</h4>
-    <p>Single photos carry per-image noise (lighting, expression, angle). Averaging N descriptors produces a centroid more representative of true identity:</p>
-    <div class="formula">d = ‖ (1/N)·Σ refᵢ − comp ‖</div>
-    <p>This is nearest-centroid classification — one of the simplest yet most effective classifiers in ML, dating back to the 1960s.</p>
-    <h4>Limitations</h4>
+    <h4>Averaging Multiple Reference Descriptors</h4>
+    <p>Averaging N descriptor vectors produces a centroid that is more stable than any single photo:</p>
+    <div class="formula">d_avg = ‖ (1/N) · Σᵢ refᵢ − comp ‖₂</div>
+    <p>This is <strong>nearest-centroid classification</strong> — one of the oldest and simplest classifiers in ML, yet highly effective when the embedding space is well-conditioned (as it is after triplet training).</p>
+    <h4>Cosine Similarity (secondary metric shown)</h4>
+    <div class="formula">cos(a,b) = (a · b) / (‖a‖ · ‖b‖)</div>
+    <p>Scale-invariant; for unit-normalised vectors, cosine similarity = 1 − (d²/2), so the two metrics are equivalent up to monotone transformation.</p>
+    <h4>Known Limitations</h4>
     <ul>
-      <li><strong>Demographic bias:</strong> Models trained on imbalanced data show higher false-positive rates for underrepresented groups</li>
-      <li><strong>Identical twins:</strong> Genetic similarity pushes descriptors below threshold — they will match each other</li>
-      <li><strong>Aging:</strong> 10+ year gaps reduce accuracy; separate age-invariant models exist (AgeDB benchmark)</li>
-      <li><strong>Quality:</strong> Face width &lt;80px, motion blur, or &gt;45° pose angle all significantly degrade accuracy</li>
+      <li><strong>Demographic bias:</strong> Training imbalances lead to higher false-positive rates for underrepresented groups</li>
+      <li><strong>Identical twins:</strong> Genetic similarity produces descriptors below threshold — they match each other</li>
+      <li><strong>Low resolution:</strong> Face crop &lt; 80 px wide degrades accuracy substantially</li>
+      <li><strong>Extreme pose:</strong> Beyond ±45° the landmark model and aligner degrade</li>
     </ul>
-    <div class="highlight-box hb-yellow">⚖ Ethics: Facial recognition must only be used with full consent of all subjects. This tool processes images locally via API — no photo data is retained after the API call returns.</div>
+    <div class="hbox hb-y">⚖ Ethics: Use facial recognition only with full consent. This tool runs entirely locally — no images leave your browser.</div>
   </div>
 </div>
 
 <div class="acc-item">
-  <div class="acc-head" onclick="toggleAcc(this)">
+  <div class="acc-head" onclick="togAcc(this)">
     <div class="acc-num">5</div>
-    <div class="acc-title">This Tool's Architecture — End-to-End Pipeline</div>
-    <span class="acc-tag tag-math">System Overview</span>
+    <div class="acc-title">Classical Geometry Tab — Anthropometric Ratios</div>
+    <span class="acc-tag t-classical">Classical Technique</span>
     <span class="acc-arrow">▼</span>
   </div>
   <div class="acc-body">
-    <h4>Processing Pipeline</h4>
-    <div class="pipeline">
-      <div class="pipe-row">
-        <div class="pipe-dot" style="background:rgba(0,200,255,.1);border-color:var(--cyan);color:var(--cyan)">1</div>
-        <div class="pipe-content"><strong>Image Upload &amp; Resize</strong><span>Photos loaded as DataURLs in-browser. Downscaled to max 512px per side for efficient API transmission via canvas.toDataURL().</span></div>
-      </div>
-      <div class="pipe-connector"></div>
-      <div class="pipe-row">
-        <div class="pipe-dot" style="background:rgba(255,214,0,.1);border-color:var(--yellow);color:var(--yellow)">2</div>
-        <div class="pipe-content"><strong>Base64 Encoding</strong><span>Images converted to base64 strings and packed into Anthropic Messages API content blocks with type: "image".</span></div>
-      </div>
-      <div class="pipe-connector"></div>
-      <div class="pipe-row">
-        <div class="pipe-dot" style="background:rgba(168,85,247,.1);border-color:var(--purple);color:var(--purple)">3</div>
-        <div class="pipe-content"><strong>Claude Vision Multimodal Analysis</strong><span>All images + a structured system prompt are sent to claude-sonnet. The model performs detection, feature comparison, and geometric reasoning internally using its learned representations.</span></div>
-      </div>
-      <div class="pipe-connector"></div>
-      <div class="pipe-row">
-        <div class="pipe-dot" style="background:rgba(0,255,179,.1);border-color:var(--green);color:var(--green)">4</div>
-        <div class="pipe-content"><strong>Structured JSON Response</strong><span>Claude returns a strict JSON object: verdict, confidence 0–100, per-feature analysis array, supporting/contradicting evidence, quality notes, and technical metadata.</span></div>
-      </div>
-      <div class="pipe-connector"></div>
-      <div class="pipe-row">
-        <div class="pipe-dot" style="background:rgba(255,61,90,.1);border-color:var(--red);color:var(--red)">5</div>
-        <div class="pipe-content"><strong>Visualization</strong><span>JSON parsed and rendered into verdict card, confidence gauge, feature breakdown table, confidence bars, and raw JSON view.</span></div>
-      </div>
-    </div>
-    <h4>What Makes Claude's Analysis Different from Classic Methods</h4>
-    <p>Unlike a single Euclidean distance score, Claude evaluates multiple independent cues and combines them — analogous to how <strong>ensemble learning</strong> (boosting, bagging) combines weak classifiers into a stronger one:</p>
+    <h4>What is Geometric / Anthropometric Recognition?</h4>
+    <p>Before neural networks, systems like <strong>Kanade (1973)</strong> and the FBI's CACHET system measured physical distances and ratios from landmark coordinates. While inferior to embedding-based methods, these ratios are interpretable and provide a useful secondary signal:</p>
     <ul>
-      <li>Structural geometry: jaw, cheekbones, cranial width, facial thirds</li>
-      <li>Specific features: eye shape/spacing, nose bridge, mouth morphology, ears</li>
-      <li>Contextual factors: lighting variation, expression change, grooming, aging</li>
-      <li>Holistic gestalt: overall impression weighted by reliability of each cue</li>
+      <li><strong>Face aspect ratio</strong> (width/height): roughly stable across individuals</li>
+      <li><strong>Interpupillary distance</strong> (IPD): normalised by face width to remove scale</li>
+      <li><strong>Facial thirds</strong>: hairline-to-brow : brow-to-nose : nose-to-chin ideally ≈ 1:1:1</li>
+      <li><strong>Nose-mouth gap / lip ratio</strong>: proportional distance between nose tip and mouth center</li>
+      <li><strong>Eye symmetry</strong>: difference in left vs right eye width (asymmetry is partially identity-discriminative)</li>
     </ul>
-    <p>The natural language output also provides <strong>interpretability</strong> — a property that single-metric distance scores fundamentally lack. This is the key advantage of neuro-symbolic and explainable AI approaches over pure black-box embedding systems.</p>
+    <div class="hbox hb-c">✦ The Geometry tab in results computes 8 of these metrics from the 68 landmark points detected by the neural landmark model — a classical technique applied on top of neural outputs.</div>
+  </div>
+</div>
+
+<div class="acc-item">
+  <div class="acc-head" onclick="togAcc(this)">
+    <div class="acc-num">6</div>
+    <div class="acc-title">Full Pipeline Summary — End to End</div>
+    <span class="acc-tag t-math">Architecture</span>
+    <span class="acc-arrow">▼</span>
+  </div>
+  <div class="acc-body">
+    <h4>This Tool's Processing Order</h4>
+    <ul>
+      <li><strong>1. Image decode</strong> — draw to <code>&lt;canvas&gt;</code>, extract pixel tensor via TensorFlow.js</li>
+      <li><strong>2. SSD MobileNet detection</strong> — locate face bounding box + detection confidence score</li>
+      <li><strong>3. 68-point landmark CNN</strong> — crop to bounding box, regress all landmark (x,y) coordinates</li>
+      <li><strong>4. Affine alignment</strong> — rotate + scale using eye landmarks to canonical pose</li>
+      <li><strong>5. ResNet-34 embedding</strong> — forward pass on aligned 150×150 crop → 128-d Float32Array</li>
+      <li><strong>6. Descriptor averaging</strong> — mean of all valid reference descriptors → reference centroid</li>
+      <li><strong>7. Euclidean distance</strong> — compute distance between centroid and comparison descriptor</li>
+      <li><strong>8. Threshold decision</strong> — distance &lt; 0.6 → MATCH, else NO MATCH</li>
+      <li><strong>9. Geometry pass</strong> — compute 8 anthropometric ratios from landmarks (classical layer)</li>
+    </ul>
+    <p>All inference runs on <strong>TensorFlow.js</strong> in the browser using WebGL acceleration where available, falling back to CPU. No data leaves the device at any point.</p>
+    <h4>@vladmandic/face-api vs Original face-api.js</h4>
+    <p>The vladmandic fork updates the library to use TF.js 4.x APIs, adds TypeScript types, improves WebGL memory management, and ships pre-converted weights compatible with the latest TF.js backend — making it more reliable in modern browsers than the original 2019 package.</p>
   </div>
 </div>
 ```
 
   </div>
 </div>
+
 <div style="height:60px"></div>
-</div>
+</div><!-- /wrap -->
 
 <script>
+// ──────────────────────────────────────────────
+//  GLOBALS
+// ──────────────────────────────────────────────
+const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
 const $ = id => document.getElementById(id);
-let refPhotos = [], compPhoto = null, liveStream = null, liveActive = false, liveTimer = null;
+let modelsReady = false;
+let refItems = []; // {id, img, canvas, descriptor, landmarks, detection, name}
+let compData = null; // {canvas, descriptor, landmarks, detection}
+let camStream = null, liveOn = false, liveTimer = null;
 
-function toast(msg, type='info', dur=4000){
+// ──────────────────────────────────────────────
+//  UTILITIES
+// ──────────────────────────────────────────────
+function toast(msg, type='i', dur=4000){
   const el = document.createElement('div');
-  el.className = 'toast ' + type;
+  el.className = 'toast t'+type;
   el.textContent = msg;
   $('notify').appendChild(el);
   setTimeout(() => el.remove(), dur);
 }
-
-function readFile(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=e=>res(e.target.result); r.onerror=rej; r.readAsDataURL(file); }); }
-
-function resizeDataUrl(dataUrl, max=512){ return new Promise(res=>{ const img=new Image(); img.onload=()=>{ const s=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement('canvas'); c.width=Math.round(img.width*s); c.height=Math.round(img.height*s); c.getContext('2d').drawImage(img,0,0,c.width,c.height); res(c.toDataURL('image/jpeg',.85)); }; img.src=dataUrl; }); }
-
-function fmtBytes(b){ return b<1024?b+'B':b<1048576?(b/1024).toFixed(1)+'KB':(b/1048576).toFixed(1)+'MB'; }
-function b64(d){ return d.split(',')[1]; }
-function mime(d){ return d.split(';')[0].split(':')[1]||'image/jpeg'; }
-
+function setStatus(state, txt){ $('sdot').className='sdot '+state; $('statusTxt').textContent=txt; }
+function vecNorm(v){ return Math.sqrt(Array.from(v).reduce((s,x)=>s+x*x,0)); }
+function cosSim(a,b){
+  let d=0,na=0,nb=0;
+  for(let i=0;i<a.length;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i];}
+  return d/(Math.sqrt(na*nb)||1);
+}
+function dot(a,b){ return Array.from(a).reduce((s,x,i)=>s+x*b[i],0); }
+function avgDescs(descs){
+  const n=descs.length, out=new Float32Array(128);
+  for(const d of descs) for(let i=0;i<128;i++) out[i]+=d[i]/n;
+  return out;
+}
 function updateRunBtn(){
-  const ok = refPhotos.length>=1 && compPhoto;
+  const ok = refItems.filter(r=>r.descriptor).length>=1 && compData?.descriptor;
   $('runBtn').disabled = !ok;
-  if(!ok) $('runHint').textContent = refPhotos.length===0&&!compPhoto ? 'Add reference photos and a comparison image to begin' : refPhotos.length===0 ? 'Add at least 1 reference photo' : 'Add a comparison photo or capture a snapshot';
-  else $('runHint').textContent = `Ready — ${refPhotos.length} reference photo${refPhotos.length>1?'s':''} loaded`;
+  if(!ok) $('runHint').textContent = !refItems.length && !compData ? 'Add reference photos and a comparison image to begin'
+    : !refItems.filter(r=>r.descriptor).length ? 'Need at least 1 reference photo with a detected face'
+    : 'Add a comparison photo or capture a snapshot';
+  else $('runHint').textContent = `Ready — ${refItems.filter(r=>r.descriptor).length} reference descriptor${refItems.filter(r=>r.descriptor).length>1?'s':''} averaged`;
 }
 
-// DRAG/DROP
-['refDrop','compDrop'].forEach(id=>{
-  const el=$( id);
-  el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('dragover');});
-  el.addEventListener('dragleave',()=>el.classList.remove('dragover'));
-  el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('dragover'); if(id==='refDrop') addRefPhotos(e.dataTransfer.files); else setCompPhoto(e.dataTransfer.files[0]);});
-});
+// ──────────────────────────────────────────────
+//  MODEL LOADING
+// ──────────────────────────────────────────────
+async function loadModels(){
+  $('loadBtn').disabled = true;
+  $('progWrap').style.display = 'block';
+  setStatus('loading','Loading models…');
 
-async function addRefPhotos(files){
-  for(const f of Array.from(files).slice(0,6-refPhotos.length)){
-    if(!f.type.startsWith('image/')){ toast('Image files only','error'); continue; }
-    if(refPhotos.length>=6){ toast('Max 6 reference photos','error'); break; }
-    const dataUrl = await resizeDataUrl(await readFile(f));
-    const id = Date.now()+Math.random();
-    refPhotos.push({id, dataUrl});
-    $('refEmpty').style.display='none';
-    const card=document.createElement('div'); card.className='ref-card'; card.id='rcard-'+id;
-    const img=document.createElement('img'); img.src=dataUrl;
-    const rmv=document.createElement('div'); rmv.className='rmv'; rmv.textContent='✕'; rmv.onclick=()=>removeRef(id);
-    const num=document.createElement('div'); num.className='ref-num'; num.textContent='#'+refPhotos.length;
-    card.append(img,rmv,num); $('refGrid').appendChild(card);
+  const steps = [
+    { label:'SSD MobileNet v1 (detection)',   fn: ()=>faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL) },
+    { label:'68-point Landmark CNN',           fn: ()=>faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL) },
+    { label:'ResNet-34 Recognition network',  fn: ()=>faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL) },
+  ];
+
+  for(let i=0;i<steps.length;i++){
+    const s=steps[i];
+    $('progLabel').textContent = `Loading: ${s.label}`;
+    $('progDetail').textContent = `${i+1} / ${steps.length}`;
+    $('progPct').textContent = Math.round((i/steps.length)*100)+'%';
+    $('progFill').style.width = Math.round((i/steps.length)*100)+'%';
+    try{ await s.fn(); }
+    catch(e){
+      setStatus('error','Failed to load: '+s.label);
+      toast('Load error: '+e.message,'e',8000);
+      $('loadBtn').disabled=false;
+      console.error(e); return;
+    }
+    $('progPct').textContent = Math.round(((i+1)/steps.length)*100)+'%';
+    $('progFill').style.width = Math.round(((i+1)/steps.length)*100)+'%';
+  }
+
+  modelsReady = true;
+  setStatus('ready','All models ready');
+  $('loadSection').style.display = 'none';
+  $('refSection').style.display = 'block';
+  $('compSection').style.display = 'block';
+  $('runWrap').style.display = 'block';
+  toast('All 3 models loaded — running in browser!','s');
+}
+
+// ──────────────────────────────────────────────
+//  REFERENCE PHOTOS
+// ──────────────────────────────────────────────
+dnd('refDrop', files => handleRefFiles(files));
+async function handleRefFiles(files){
+  if(!modelsReady){ toast('Load models first','e'); return; }
+  const arr = Array.from(files).slice(0, 6-refItems.length);
+  for(const f of arr){
+    if(!f.type.startsWith('image/')){ toast('Image files only','e'); continue; }
+    if(refItems.length>=6){ toast('Max 6 reference photos','e'); break; }
+    await addRefPhoto(f);
   }
   updateRefUI(); updateRunBtn();
 }
 
+async function addRefPhoto(file){
+  const id = Date.now()+Math.random();
+  const item = { id, name:file.name, descriptor:null, landmarks:null, detection:null, canvas:null };
+  refItems.push(item);
+  $('refEmpty').style.display='none';
+
+  // Create card with spinner
+  const card = document.createElement('div');
+  card.className='ref-card'; card.id='rc-'+id;
+  const ov = document.createElement('div');
+  ov.className='proc-overlay'; ov.id='ov-'+id;
+  ov.innerHTML='<div class="spinner"></div><span>Detecting…</span>';
+  card.appendChild(ov);
+  const rmv = document.createElement('div');
+  rmv.className='rmv'; rmv.textContent='✕'; rmv.onclick=()=>removeRef(id);
+  card.appendChild(rmv);
+  $('refGrid').appendChild(card);
+
+  // Load image
+  const img = new Image();
+  img.src = URL.createObjectURL(file);
+  await new Promise(r=>img.onload=r);
+  item.img = img;
+
+  // Draw to canvas
+  const cv = document.createElement('canvas');
+  cv.width=img.width; cv.height=img.height;
+  cv.getContext('2d').drawImage(img,0,0);
+
+  // Detect
+  try{
+    const result = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options({ minConfidence:0.5 }))
+      .withFaceLandmarks().withFaceDescriptor();
+
+    if(result){
+      item.descriptor = result.descriptor;
+      item.landmarks  = result.landmarks;
+      item.detection  = result.detection;
+
+      // Draw overlays
+      const ds = { width:img.width, height:img.height };
+      faceapi.matchDimensions(cv, ds);
+      const res = faceapi.resizeResults(result, ds);
+      new faceapi.draw.DrawBox(res.detection.box,{ boxColor:'#00ffb3', lineWidth:2, label:'' }).draw(cv);
+      new faceapi.draw.DrawFaceLandmarks(res.landmarks,{ drawLines:true, lineColor:'rgba(0,200,255,.6)', lineWidth:1, pointColor:'rgba(0,255,179,.9)', pointSize:2 }).draw(cv);
+
+      const badge = document.createElement('div');
+      badge.className='ref-badge rb-ok'; badge.textContent='✓ Face';
+      card.appendChild(badge);
+    } else {
+      cv.getContext('2d').fillStyle='rgba(255,61,90,.25)'; cv.getContext('2d').fillRect(0,0,cv.width,cv.height);
+      const badge = document.createElement('div');
+      badge.className='ref-badge rb-fail'; badge.textContent='✗ No face';
+      card.appendChild(badge);
+      toast('No face found in '+file.name,'e');
+    }
+  }catch(e){ console.error(e); toast('Error: '+e.message,'e'); }
+
+  item.canvas = cv;
+  card.insertBefore(cv, ov);
+  ov.remove();
+}
+
 function removeRef(id){
-  refPhotos=refPhotos.filter(r=>r.id!=id);
-  document.querySelector('#rcard-'+id)?.remove();
-  if(!refPhotos.length) $('refEmpty').style.display='block';
+  refItems = refItems.filter(r=>r.id!=id);
+  document.querySelector('#rc-'+id)?.remove();
+  if(!refItems.length) $('refEmpty').style.display='block';
   updateRefUI(); updateRunBtn();
 }
 
 function updateRefUI(){
-  const n=refPhotos.length;
-  $('refCountBadge').textContent=n+' / 6';
+  const n=refItems.length, wf=refItems.filter(r=>r.descriptor).length;
+  $('refBadge').textContent=n+' / 6';
   if(n>0){
     $('refStats').style.display='flex';
-    $('sPhotoCount').textContent=n;
-    $('sTotalSize').textContent=fmtBytes(refPhotos.reduce((s,r)=>s+(r.dataUrl.length*.75),0));
+    $('stCount').textContent=n; $('stFaces').textContent=wf;
+    const confs=refItems.filter(r=>r.detection).map(r=>r.detection.score);
+    $('stConf').textContent=confs.length ? (confs.reduce((a,b)=>a+b,0)/confs.length*100).toFixed(0)+'%' : '—';
   } else $('refStats').style.display='none';
 }
 
-async function setCompPhoto(file){
-  if(!file||!file.type.startsWith('image/')){ toast('Image files only','error'); return; }
-  compPhoto={ dataUrl: await resizeDataUrl(await readFile(file)) };
-  $('compImg').src=compPhoto.dataUrl;
-  $('compPreviewWrap').style.display='block';
-  toast('Comparison image loaded','success',2000);
+// ──────────────────────────────────────────────
+//  COMPARISON — UPLOAD
+// ──────────────────────────────────────────────
+dnd('compDrop', files => handleCompFile(files[0]));
+async function handleCompFile(file){
+  if(!modelsReady){ toast('Load models first','e'); return; }
+  if(!file||!file.type.startsWith('image/')){ toast('Image files only','e'); return; }
+
+  const img = new Image();
+  img.src = URL.createObjectURL(file);
+  await new Promise(r=>img.onload=r);
+
+  const cv = $('compCanvas');
+  cv.width=img.width; cv.height=img.height;
+  cv.getContext('2d').drawImage(img,0,0);
+  $('compPreview').style.display='block';
+  $('compOkLabel').textContent='';
+  toast('Processing comparison image…','i',2000);
+
+  await runCompDetect(img, cv, $('compOkLabel'));
   updateRunBtn();
 }
 
-function switchCompTab(name,btn){
-  document.querySelectorAll('.comp-tab').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.comp-panel').forEach(p=>p.classList.remove('active'));
-  btn.classList.add('active'); $('panel-'+name).classList.add('active');
+// ──────────────────────────────────────────────
+//  CAMERA
+// ──────────────────────────────────────────────
+function switchCTab(name, btn){
+  document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.cpanel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active'); $('cpanel-'+name).classList.add('active');
 }
 
-async function startCamera(){
+async function startCam(){
   try{
-    liveStream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
-    const v=$('videoEl'); v.srcObject=liveStream; await new Promise(r=>v.onloadedmetadata=r); v.play();
-    $('vidPlaceholder').style.display='none';
-    $('startCamBtn').style.display='none';
-    ['stopCamBtn','snapBtn','liveBtn'].forEach(id=>$(id).style.display='inline-flex');
-    toast('Camera started','success');
-  }catch(e){ toast('Camera: '+e.message,'error'); }
+    camStream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
+    const v=$('vidEl'); v.srcObject=camStream; await new Promise(r=>v.onloadedmetadata=r); v.play();
+    $('vidPH').style.display='none';
+    $('camStartBtn').style.display='none';
+    ['camStopBtn','snapBtn','liveBtn'].forEach(id=>$(id).style.display='inline-flex');
+    toast('Camera started','s');
+  }catch(e){ toast('Camera: '+e.message,'e'); }
 }
 
-function stopCamera(){
-  if(liveStream){ liveStream.getTracks().forEach(t=>t.stop()); liveStream=null; }
-  if(liveTimer){ clearInterval(liveTimer); liveTimer=null; liveActive=false; }
-  $('videoEl').srcObject=null; $('vidPlaceholder').style.display='flex';
-  $('startCamBtn').style.display='inline-flex';
-  ['stopCamBtn','snapBtn','liveBtn'].forEach(id=>$(id).style.display='none');
-  $('liveBtn').textContent='⚡ Live Analysis: OFF';
+function stopCam(){
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+  if(liveTimer){ clearInterval(liveTimer); liveTimer=null; liveOn=false; }
+  const v=$('vidEl'); v.srcObject=null;
+  $('vidPH').style.display='flex';
+  $('camStartBtn').style.display='inline-flex';
+  ['camStopBtn','snapBtn','liveBtn'].forEach(id=>$(id).style.display='none');
+  $('liveBtn').textContent='⚡ Live: OFF';
+  const ov=$('vidOverlay'); ov.getContext('2d').clearRect(0,0,ov.width,ov.height);
 }
 
-function takeSnapshot(){
-  const v=$('videoEl'), c=$('snapCanvas');
-  c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
-  compPhoto={ dataUrl: c.toDataURL('image/jpeg',.9) };
-  $('snapPreview').style.display='block';
-  toast('Snapshot captured','success',2000); updateRunBtn();
+async function takeSnap(){
+  const v=$('vidEl'), sc=$('snapCanvas');
+  sc.width=v.videoWidth; sc.height=v.videoHeight;
+  sc.getContext('2d').drawImage(v,0,0);
+  $('snapPreview').style.display='block'; $('snapOkLabel').textContent='';
+  toast('Processing snapshot…','i',2000);
+  await runCompDetect(sc, sc, $('snapOkLabel'));
+  updateRunBtn();
 }
 
 function toggleLive(){
-  if(!liveStream){ toast('Start camera first','error'); return; }
-  liveActive=!liveActive;
-  $('liveBtn').textContent='⚡ Live Analysis: '+(liveActive?'ON':'OFF');
-  if(liveActive){ toast('Live analysis ON — every 3s','info'); liveTimer=setInterval(runLive,3000); }
+  if(!camStream){ toast('Start camera first','e'); return; }
+  liveOn=!liveOn;
+  $('liveBtn').textContent='⚡ Live: '+(liveOn?'ON':'OFF');
+  if(liveOn){ toast('Live analysis ON — every 1.5 s','i'); liveTimer=setInterval(liveFrame,1500); }
   else{ clearInterval(liveTimer); liveTimer=null; }
 }
 
-async function runLive(){
-  if(!liveStream||!refPhotos.length) return;
-  const v=$('videoEl'), c=$('liveCanvas');
-  c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
-  compPhoto={ dataUrl: c.toDataURL('image/jpeg',.8) };
+async function liveFrame(){
+  if(!camStream||!modelsReady) return;
+  const v=$('vidEl'), ov=$('vidOverlay');
+  ov.width=v.videoWidth; ov.height=v.videoHeight;
+  const ctx=ov.getContext('2d'); ctx.clearRect(0,0,ov.width,ov.height);
+
   try{
-    const r=await callAPI(true);
-    if(r){
-      const ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); ctx.drawImage(v,0,0);
-      const m=r.verdict==='MATCH', col=m?'#00ffb3':'#ff3d5a';
-      ctx.strokeStyle=col; ctx.lineWidth=3; ctx.strokeRect(8,8,c.width-16,c.height-16);
-      ctx.fillStyle=m?'rgba(0,255,179,.88)':'rgba(255,61,90,.88)'; ctx.fillRect(8,8,230,38);
-      ctx.fillStyle='#000'; ctx.font='bold 14px IBM Plex Mono';
-      ctx.fillText(`${r.verdict}  —  ${r.confidence}% confidence`,18,31);
+    const result = await faceapi.detectSingleFace(v, new faceapi.SsdMobilenetv1Options({minConfidence:.5}))
+      .withFaceLandmarks().withFaceDescriptor();
+    if(!result) return;
+
+    const ds={width:v.videoWidth,height:v.videoHeight};
+    faceapi.matchDimensions(ov,ds);
+    const res=faceapi.resizeResults(result,ds);
+
+    let label='Detected', color='#ffd600';
+    const refs=refItems.filter(r=>r.descriptor);
+    if(refs.length){
+      const avg=avgDescs(refs.map(r=>r.descriptor));
+      const dist=faceapi.euclideanDistance(avg, result.descriptor);
+      const match=dist<0.6;
+      label=match?`MATCH  d=${dist.toFixed(3)}`:`NO MATCH  d=${dist.toFixed(3)}`;
+      color=match?'#00ffb3':'#ff3d5a';
+      compData={descriptor:result.descriptor,landmarks:result.landmarks,detection:result.detection,canvas:ov};
+      updateRunBtn();
     }
+    new faceapi.draw.DrawBox(res.detection.box,{boxColor:color,lineWidth:2,label}).draw(ov);
+    new faceapi.draw.DrawFaceLandmarks(res.landmarks,{drawLines:true,lineColor:'rgba(0,200,255,.5)',lineWidth:1,pointColor:color,pointSize:2}).draw(ov);
   }catch(e){ console.error(e); }
 }
 
-async function callAPI(quick=false){
-  const content=[];
-  refPhotos.forEach((p,i)=>{
-    content.push({type:'text',text:`Reference photo ${i+1} of ${refPhotos.length} (the REFERENCE person to identify):`});
-    content.push({type:'image',source:{type:'base64',media_type:mime(p.dataUrl),data:b64(p.dataUrl)}});
-  });
-  content.push({type:'text',text:'COMPARISON photo — is this the SAME PERSON as the references above?'});
-  content.push({type:'image',source:{type:'base64',media_type:mime(compPhoto.dataUrl),data:b64(compPhoto.dataUrl)}});
-
-  const sys = quick
-    ? 'You are a facial recognition AI. Respond ONLY with JSON: {"verdict":"MATCH" or "NO_MATCH","confidence":0-100}'
-    : `You are an expert facial recognition AI system. Compare the REFERENCE photos to the COMPARISON photo.
-
-Analyze these features independently:
-- Overall face shape (jaw, cheekbones, cranial width, facial thirds)
-- Eyes (shape, size, spacing, lid morphology, corners)
-- Nose (bridge width, tip shape, nostril shape)
-- Mouth (lip fullness, width, philtrum)
-- Eyebrows (arch, thickness, spacing)
-- Ears (if visible)
-- Skin (tone, texture, markings)
-- Facial proportions (width/height, thirds ratio)
-- Overall holistic impression
-
-Account for differences in: lighting, angle, expression, image quality, makeup, facial hair, glasses.
-
-Respond ONLY with this exact JSON (no markdown fences, no text outside JSON):
-{
-  "verdict": "MATCH" | "NO_MATCH" | "UNCERTAIN",
-  "confidence": <integer 0-100>,
-  "reasoning": "<2-3 sentence summary>",
-  "features": [
-    {"name":"<feature>","analysis":"<observation>","match_level":"HIGH"|"MEDIUM"|"LOW"|"N/A","confidence":<0-100>,"icon":"<emoji>"}
-  ],
-  "supporting_evidence": ["<string>","<string>"],
-  "contradicting_evidence": ["<string>"],
-  "quality_notes": "<lighting/quality/angle observations>",
-  "technical": {"num_references":${refPhotos.length},"method":"Claude Vision Multimodal","descriptor_size":"Multimodal (internal)","distance_metric":"Semantic similarity","threshold":"60% confidence","processing_time_ms":null}
-}`;
-
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:[{role:'user',content}]})
-  });
-  if(!resp.ok) throw new Error(`API ${resp.status}: ${await resp.text()}`);
-  const data=await resp.json();
-  const text=data.content.map(b=>b.text||'').join('');
-  return JSON.parse(text.replace(/```json|```/g,'').trim());
-}
-
-async function runAnalysis(){
-  if(!refPhotos.length||!compPhoto){ toast('Need reference + comparison','error'); return; }
-  $('runBtn').disabled=true;
-  $('resultsSection').style.display='block';
-  $('loadingState').style.display='block';
-  $('resultsContent').style.display='none';
-  $('resultsSection').scrollIntoView({behavior:'smooth',block:'start'});
-  const t0=Date.now();
+// ──────────────────────────────────────────────
+//  SHARED COMP DETECT
+// ──────────────────────────────────────────────
+async function runCompDetect(src, cv, okLabel){
   try{
-    $('loadingDetail').textContent=`Sending ${refPhotos.length} reference + 1 comparison image...`;
-    const result=await callAPI(false);
-    result.technical.processing_time_ms=Date.now()-t0;
-    displayResults(result);
-    toast('Analysis complete!','success');
-  }catch(e){
-    console.error(e); toast('Analysis failed: '+e.message,'error',8000);
-    $('loadingState').style.display='none';
-  }finally{ $('runBtn').disabled=false; }
+    const result = await faceapi.detectSingleFace(src, new faceapi.SsdMobilenetv1Options({minConfidence:.4}))
+      .withFaceLandmarks().withFaceDescriptor();
+    if(result){
+      compData={descriptor:result.descriptor,landmarks:result.landmarks,detection:result.detection,canvas:cv};
+      const ds={width:cv.width,height:cv.height};
+      faceapi.matchDimensions(cv,ds);
+      const res=faceapi.resizeResults(result,ds);
+      new faceapi.draw.DrawBox(res.detection.box,{boxColor:'#00c8ff',lineWidth:2,label:''}).draw(cv);
+      new faceapi.draw.DrawFaceLandmarks(res.landmarks,{drawLines:true,lineColor:'rgba(0,200,255,.5)',lineWidth:1,pointColor:'#00c8ff',pointSize:2}).draw(cv);
+      okLabel.textContent='✓ Face detected — confidence '+Math.round(result.detection.score*100)+'%';
+      okLabel.style.color='var(--green)';
+      toast('Face detected in comparison image','s');
+    } else {
+      compData=null;
+      okLabel.textContent='✗ No face detected — try a clearer photo';
+      okLabel.style.color='var(--red)';
+      toast('No face found in comparison image','e');
+    }
+  }catch(e){ console.error(e); toast('Detection error: '+e.message,'e'); }
 }
 
-function displayResults(r){
-  $('loadingState').style.display='none';
-  $('resultsContent').style.display='block';
-  const colorMap={MATCH:'match','NO_MATCH':'no-match',UNCERTAIN:'uncertain'};
-  const iconMap={MATCH:'✅','NO_MATCH':'❌',UNCERTAIN:'🤔'};
-  const labelMap={MATCH:'MATCH','NO_MATCH':'NO MATCH',UNCERTAIN:'UNCERTAIN'};
-  const vb=$('verdictBox'); vb.className='verdict-box '+(colorMap[r.verdict]||'uncertain');
-  $('verdictIcon').textContent=iconMap[r.verdict]||'🤔';
-  $('verdictLabel').textContent=labelMap[r.verdict]||r.verdict;
-  $('verdictSub').textContent=r.reasoning||'Analysis complete.';
-  const conf=Math.min(100,Math.max(0,r.confidence||0));
-  const col=conf>=75?'var(--green)':conf>=60?'var(--yellow)':'var(--red)';
-  $('gaugeFill').style.cssText=`width:${conf}%;background:linear-gradient(90deg,var(--red),var(--yellow) 60%,var(--green))`;
-  $('gaugeMarker').style.cssText=`left:${conf}%;background:${col};border:3px solid var(--bg)`;
-  $('summaryStats').innerHTML=`
-    <div class="stat-item"><div class="stat-val" style="color:${col}">${conf}%</div><div class="stat-lbl">Confidence</div></div>
-    <div class="stat-item"><div class="stat-val">${r.features?.length||0}</div><div class="stat-lbl">Features analyzed</div></div>
-    <div class="stat-item"><div class="stat-val">${refPhotos.length}</div><div class="stat-lbl">Ref photos</div></div>
-    <div class="stat-item"><div class="stat-val">${r.technical?.processing_time_ms||'—'}ms</div><div class="stat-lbl">Process time</div></div>`;
-  const sg=$('summaryGrid'); sg.innerHTML='';
-  [{label:'Verdict',val:`<span style="color:${col};font-family:'Syne',sans-serif;font-weight:700;font-size:1rem">${labelMap[r.verdict]||r.verdict}</span>`},
-   {label:'Quality notes',val:r.quality_notes||'—'},
-   {label:'Supporting evidence',val:(r.supporting_evidence||[]).map(e=>'• '+e).join('<br>')||'—'},
-   {label:'Contradicting evidence',val:(r.contradicting_evidence||[]).map(e=>'• '+e).join('<br>')||'None'}
-  ].forEach(it=>{ const el=document.createElement('div'); el.className='analysis-card'; el.innerHTML=`<div class="ac-label">${it.label}</div><div class="ac-value">${it.val}</div>`; sg.appendChild(el); });
-  const fl=$('featureList'); fl.innerHTML='';
-  (r.features||[]).forEach(f=>{
-    const mc=f.match_level==='HIGH'?'fs-high':f.match_level==='LOW'?'fs-low':'fs-mid';
-    const el=document.createElement('div'); el.className='feature-row';
-    el.innerHTML=`<div class="feature-icon">${f.icon||'🔍'}</div><div style="flex:1;min-width:0"><div class="feature-name">${f.name}</div><div class="feature-desc">${f.analysis}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0"><span class="feature-score ${mc}">${f.match_level}</span><span style="font-size:.6rem;color:var(--muted)">${f.confidence}%</span></div>`;
-    fl.appendChild(el);
-  });
-  const td=$('techData'); const tech=r.technical||{};
-  td.innerHTML=[{label:'Method',val:tech.method||'Claude Vision'},{label:'References',val:tech.num_references||refPhotos.length},{label:'Descriptor',val:tech.descriptor_size||'Multimodal'},{label:'Metric',val:tech.distance_metric||'Semantic'},{label:'Threshold',val:tech.threshold||'60%'},{label:'Time',val:(tech.processing_time_ms||'—')+'ms'}].map(it=>`<div class="info-box"><label>${it.label}</label><span>${it.val}</span></div>`).join('');
-  const cb=$('confBreakdown'); cb.innerHTML='';
-  (r.features||[]).forEach(f=>{
-    const c=Math.min(100,Math.max(0,f.confidence||0)), col2=c>=75?'var(--green)':c>=50?'var(--yellow)':'var(--red)';
-    const el=document.createElement('div'); el.style.cssText='margin-bottom:8px';
-    el.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:.63rem;color:var(--muted);margin-bottom:3px"><span>${f.icon||''} ${f.name}</span><span style="color:${col2}">${c}%</span></div><div class="conf-bar-track"><div class="conf-bar-fill" style="width:${c}%;background:${col2}"></div></div>`;
-    cb.appendChild(el);
-  });
-  $('rawOutput').textContent=JSON.stringify(r,null,2);
+// ──────────────────────────────────────────────
+//  RUN ANALYSIS
+// ──────────────────────────────────────────────
+async function runAnalysis(){
+  const refs=refItems.filter(r=>r.descriptor);
+  if(!refs.length||!compData?.descriptor){ toast('Need reference(s) + comparison face','e'); return; }
+
+  $('runBtn').disabled=true;
+  $('runHint').textContent='Running analysis…';
+  $('resultsSection').style.display='block';
+  $('resultsSection').scrollIntoView({behavior:'smooth',block:'start'});
+  await new Promise(r=>setTimeout(r,100));
+
+  const avg=avgDescs(refs.map(r=>r.descriptor));
+  const comp=compData.descriptor;
+  const dist=faceapi.euclideanDistance(avg,comp);
+  const isMatch=dist<0.6;
+  const perDists=refs.map(r=>({name:r.name,dist:faceapi.euclideanDistance(r.descriptor,comp),canvas:r.canvas}));
+
+  displayResults(dist,isMatch,avg,comp,perDists,refs);
+  $('runBtn').disabled=false;
+  $('runHint').textContent=isMatch?'✓ Analysis complete — MATCH found':'Analysis complete';
+  toast('Analysis complete!','s');
 }
 
-function resetResults(){ $('resultsSection').style.display='none'; }
+// ──────────────────────────────────────────────
+//  DISPLAY RESULTS
+// ──────────────────────────────────────────────
+function displayResults(dist,isMatch,avg,comp,perDists,refs){
+  // Verdict
+  const confidence=Math.max(0,Math.min(100,(1-dist/1.4)*100));
+  const vb=$('verdictBox');
+  vb.className='verdict-box '+(dist<0.5?'vb-match':dist<0.6?'vb-uncertain':'vb-nomatch')+' fade-up';
+  $('vIcon').textContent=dist<0.5?'✅':dist<0.6?'🤔':'❌';
+  $('vLabel').textContent=dist<0.5?'MATCH':dist<0.6?'UNCERTAIN':'NO MATCH';
+  $('vSub').textContent=`Euclidean distance: ${dist.toFixed(4)} — threshold: 0.6 — ${isMatch?'same person identified':'different person'}`;
 
-function switchResTab(name,btn){
-  document.querySelectorAll('.tabs-bar .tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  // Gauge (map 0→1.4 to 0→100%)
+  const pct=Math.min(100,(dist/1.4)*100);
+  const col=dist<0.4?'var(--green)':dist<0.6?'var(--yellow)':'var(--red)';
+  $('gFill').style.cssText=`width:${pct}%;background:linear-gradient(90deg,var(--green),var(--yellow) 43%,var(--red))`;
+  $('gMark').style.cssText=`left:${pct}%;background:${col};border:3px solid var(--bg)`;
+
+  // Overview
+  $('ovStats').innerHTML=`
+    <div class="stat-box"><div class="stat-val" style="color:${col}">${dist.toFixed(4)}</div><div class="stat-lbl">Distance</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:${col}">${confidence.toFixed(1)}%</div><div class="stat-lbl">Similarity</div></div>
+    <div class="stat-box"><div class="stat-val">0.600</div><div class="stat-lbl">Threshold</div></div>
+    <div class="stat-box"><div class="stat-val">${refs.length}</div><div class="stat-lbl">References</div></div>`;
+  $('ovInfo').innerHTML=`
+    <div class="info-box"><label>Verdict</label><span style="color:${col};font-weight:700">${dist<0.5?'MATCH':dist<0.6?'UNCERTAIN':'NO MATCH'}</span></div>
+    <div class="info-box"><label>Distance from threshold</label><span>${(dist-0.6).toFixed(4)} (${dist<0.6?'below ✓':'above ✗'})</span></div>
+    <div class="info-box"><label>Descriptor dims</label><span>128-d Float32</span></div>
+    <div class="info-box"><label>Metric</label><span>Euclidean (L2)</span></div>`;
+
+  // Per-photo
+  const pl=$('photoList'); pl.innerHTML='';
+  perDists.forEach(pd=>{
+    const bw=Math.min(100,(pd.dist/1.4)*100);
+    const c=pd.dist<0.4?'var(--green)':pd.dist<0.6?'var(--yellow)':'var(--red)';
+    const row=document.createElement('div'); row.className='photo-row';
+    row.innerHTML=`
+      <div class="photo-thumb"><canvas id="pth-${Math.random().toString(36).slice(2)}"></canvas></div>
+      <div class="photo-info">
+        <div class="photo-name">${pd.name}</div>
+        <div class="photo-dist" style="color:${c}">d = ${pd.dist.toFixed(4)} — ${pd.dist<0.6?'MATCH':'NO MATCH'}</div>
+      </div>
+      <div class="mini-bar-wrap"><div class="mini-bar" style="width:${bw}%;background:${c}"></div></div>`;
+    pl.appendChild(row);
+    if(pd.canvas){
+      const tc=row.querySelector('canvas');
+      tc.width=pd.canvas.width; tc.height=pd.canvas.height;
+      tc.getContext('2d').drawImage(pd.canvas,0,0);
+    }
+  });
+
+  // Descriptor bars
+  const dv=$('descViz'); dv.innerHTML='';
+  for(let i=0;i<128;i++){
+    const av=avg[i], cv2=comp[i], diff=Math.abs(av-cv2);
+    const maxH=30, aH=Math.min(maxH,Math.abs(av)*maxH*4), cH=Math.min(maxH,Math.abs(cv2)*maxH*4);
+    const bc=diff<0.05?'var(--green)':diff<0.15?'var(--yellow)':'var(--red)';
+    const bar=document.createElement('div'); bar.className='dbar';
+    bar.style.cssText=`height:${Math.max(2,aH+cH+2)}px;background:linear-gradient(180deg,rgba(0,200,255,.8) ${aH}px,${bc} ${aH+2}px)`;
+    bar.title=`dim${i+1}: ref=${av.toFixed(3)} comp=${cv2.toFixed(3)} Δ=${diff.toFixed(3)}`;
+    dv.appendChild(bar);
+  }
+  $('normRef').textContent=vecNorm(avg).toFixed(4);
+  $('normComp').textContent=vecNorm(comp).toFixed(4);
+  $('cosineVal').textContent=cosSim(Array.from(avg),Array.from(comp)).toFixed(4);
+  $('dotVal').textContent=dot(avg,comp).toFixed(4);
+
+  // Landmarks
+  const lm=compData.landmarks;
+  if(lm){
+    const lmCv=$('lmCanvas');
+    const src=compData.canvas;
+    if(src.width&&src.height){
+      lmCv.width=src.width; lmCv.height=src.height;
+      const ctx=lmCv.getContext('2d'); ctx.drawImage(src,0,0);
+      const ds={width:src.width,height:src.height};
+      faceapi.matchDimensions(lmCv,ds);
+      const rres=faceapi.resizeResults({landmarks:lm,detection:compData.detection},ds);
+      new faceapi.draw.DrawFaceLandmarks(rres.landmarks,{drawLines:true,lineColor:'rgba(0,200,255,.7)',lineWidth:1.5,pointColor:'#00ffb3',pointSize:3}).draw(lmCv);
+    }
+    const groups=[
+      {name:'Jaw outline',pts:lm.getJawOutline(),col:'var(--cyan)'},
+      {name:'Left eyebrow',pts:lm.getLeftEyeBrow(),col:'var(--purple)'},
+      {name:'Right eyebrow',pts:lm.getRightEyeBrow(),col:'var(--purple)'},
+      {name:'Nose bridge',pts:lm.getNoseBridge(),col:'var(--yellow)'},
+      {name:'Nose base',pts:lm.getNose(),col:'var(--yellow)'},
+      {name:'Left eye',pts:lm.getLeftEye(),col:'var(--green)'},
+      {name:'Right eye',pts:lm.getRightEye(),col:'var(--green)'},
+      {name:'Mouth',pts:lm.getMouth(),col:'var(--red)'},
+    ];
+    const lg=$('lmGroups'); lg.innerHTML='';
+    groups.forEach(g=>{
+      const el=document.createElement('div'); el.className='lm-group';
+      el.innerHTML=`<div class="lm-gname">${g.name}</div><div class="lm-gval" style="color:${g.col}">${g.pts.length}</div><div class="lm-gsub">landmark pts</div>`;
+      lg.appendChild(el);
+    });
+
+    // Geometry
+    computeGeometry(lm);
+  }
+}
+
+// ──────────────────────────────────────────────
+//  GEOMETRY (classical)
+// ──────────────────────────────────────────────
+function computeGeometry(lm){
+  const jaw=lm.getJawOutline();
+  const le=lm.getLeftEye(), re=lm.getRightEye();
+  const nb=lm.getNoseBridge(), nose=lm.getNose();
+  const mouth=lm.getMouth();
+  const ctr=pts=>({x:pts.reduce((s,p)=>s+p.x,0)/pts.length,y:pts.reduce((s,p)=>s+p.y,0)/pts.length});
+  const d=(a,b)=>Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);
+
+  const lec=ctr(le),rec=ctr(re),ipd=d(lec,rec);
+  const jawW=d(jaw[0],jaw[16]);
+  const jawH=d(jaw[8],ctr([...le,...re]));
+  const faceAR=jawW>0?(jawW/jawH).toFixed(3):'—';
+  const noseLen=d(nb[0],nb[nb.length-1]);
+  const mouthW=d(mouth[0],mouth[6]);
+  const mouthIPD=ipd>0?(mouthW/ipd).toFixed(3):'—';
+  const eyeAsym=Math.abs(d(le[0],le[3])-d(re[0],re[3])).toFixed(2);
+  const ipdFace=jawW>0?(ipd/jawW).toFixed(3):'—';
+  const noseMouth=d(nb[nb.length-1],ctr(mouth)).toFixed(1);
+
+  const metrics=[
+    {name:'Face Aspect Ratio',val:faceAR,desc:'Jaw width / jaw height'},
+    {name:'Interpupillary Dist',val:ipd.toFixed(1)+'px',desc:'Eye center to eye center'},
+    {name:'Nose Length',val:noseLen.toFixed(1)+'px',desc:'Bridge top → tip'},
+    {name:'Mouth Width',val:mouthW.toFixed(1)+'px',desc:'Corner to corner'},
+    {name:'Mouth / IPD Ratio',val:mouthIPD,desc:'Normalized mouth width'},
+    {name:'Eye Asymmetry',val:eyeAsym+'px',desc:'Left vs right eye width diff'},
+    {name:'Ocular-Face Ratio',val:ipdFace,desc:'IPD / jaw width'},
+    {name:'Nose-Mouth Gap',val:noseMouth+'px',desc:'Tip to mouth centroid'},
+  ];
+  const gg=$('geoGrid'); gg.innerHTML='';
+  metrics.forEach(m=>{
+    const el=document.createElement('div'); el.className='geo-item';
+    el.innerHTML=`<div class="geo-name">${m.name}</div><div class="geo-val">${m.val}</div><div class="geo-desc">${m.desc}</div>`;
+    gg.appendChild(el);
+  });
+}
+
+// ──────────────────────────────────────────────
+//  TAB SWITCHING
+// ──────────────────────────────────────────────
+function switchRTab(name,btn){
+  document.querySelectorAll('.tabs-bar .tbtn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tpanel').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active'); $('tab-'+name).classList.add('active');
 }
 
-function toggleAcc(head){
+// ──────────────────────────────────────────────
+//  ACCORDION
+// ──────────────────────────────────────────────
+function togAcc(head){
   const body=head.nextElementSibling, was=head.classList.contains('open');
   document.querySelectorAll('.acc-head.open').forEach(h=>{ h.classList.remove('open'); h.nextElementSibling.classList.remove('open'); });
   if(!was){ head.classList.add('open'); body.classList.add('open'); }
 }
+window.addEventListener('load',()=>{ const h=document.querySelector('.acc-head'); if(h){h.classList.add('open');h.nextElementSibling.classList.add('open');} });
 
-window.addEventListener('load',()=>{ const h=document.querySelector('.acc-head'); if(h){ h.classList.add('open'); h.nextElementSibling.classList.add('open'); } });
+// ──────────────────────────────────────────────
+//  DRAG + DROP HELPER
+// ──────────────────────────────────────────────
+function dnd(id, cb){
+  const el=$(id);
+  el.addEventListener('dragover', e=>{ e.preventDefault(); el.classList.add('dragover'); });
+  el.addEventListener('dragleave', ()=>el.classList.remove('dragover'));
+  el.addEventListener('drop', e=>{ e.preventDefault(); el.classList.remove('dragover'); cb(e.dataTransfer.files); });
+}
 </script>
 
 </body>
